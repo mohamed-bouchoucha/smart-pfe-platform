@@ -1,0 +1,7 @@
+# Ignore all files
+node_modules/
+__pycache__/
+.env
+*.pyc
+db.sqlite3
+
