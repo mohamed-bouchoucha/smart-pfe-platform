@@ -1,0 +1,93 @@
+.upload-section {
+  margin-bottom: var(--space-xl);
+}
+
+.upload-controls {
+  margin-bottom: var(--space-md);
+  max-width: 300px;
+}
+
+.dropzone {
+  border: 2px dashed var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dropzone:hover,
+.dropzone.active {
+  border-color: var(--accent-primary);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.dropzone-icon {
+  font-size: 3rem;
+  color: var(--accent-primary-light);
+  margin-bottom: var(--space-md);
+}
+
+.dropzone p {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--space-xs);
+}
+
+.dropzone span {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.hidden-input {
+  display: none;
+}
+
+.upload-status {
+  text-align: center;
+  padding: var(--space-md);
+  color: var(--accent-secondary);
+}
+
+.document-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.document-item:hover {
+  background: var(--bg-card);
+}
+
+.doc-icon {
+  font-size: 1.5rem;
+  color: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.doc-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.doc-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

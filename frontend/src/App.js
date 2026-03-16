@@ -1,24 +1,107 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Sidebar from './components/Sidebar/Sidebar';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Chatbot from './pages/Chatbot';
+import Projects from './pages/Projects';
+import Upload from './pages/Upload';
+import Favorites from './pages/Favorites';
+import AdminDashboard from './pages/AdminDashboard';
+import './index.css';
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return isAuthenticated ? children : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return isAuthenticated ? <Navigate to="/dashboard" /> : children;
+}
+
+function LoadingScreen() {
+  return (
+    <div style={{
+      height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg-primary)', color: 'var(--accent-primary-light)',
+      fontSize: '1.2rem', fontWeight: 600,
+    }}>
+      ⏳ Chargement...
+    </div>
+  );
+}
+
+function AppLayout({ children }) {
+  return (
+    <div className="app-layout">
+      <Sidebar />
+      <main className="main-content">{children}</main>
+    </div>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+
+      {/* Protected Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/chatbot" element={
+        <ProtectedRoute><AppLayout><Chatbot /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/projects" element={
+        <ProtectedRoute><AppLayout><Projects /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/upload" element={
+        <ProtectedRoute><AppLayout><Upload /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/favorites" element={
+        <ProtectedRoute><AppLayout><Favorites /></AppLayout></ProtectedRoute>
+      } />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={
+        <AdminRoute><AppLayout><AdminDashboard /></AppLayout></AdminRoute>
+      } />
+      <Route path="/admin/users" element={
+        <AdminRoute><AppLayout><AdminDashboard /></AppLayout></AdminRoute>
+      } />
+      <Route path="/admin/projects" element={
+        <AdminRoute><AppLayout><AdminDashboard /></AppLayout></AdminRoute>
+      } />
+
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="*" element={<Navigate to="/dashboard" />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </Router>
   );
 }
 

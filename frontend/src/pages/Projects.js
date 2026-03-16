@@ -1,0 +1,132 @@
+import React, { useState, useEffect } from 'react';
+import { projectsAPI, favoritesAPI } from '../../services/api';
+import { FiSearch, FiFilter, FiHeart } from 'react-icons/fi';
+import './Projects.css';
+
+export default function Projects() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [domainFilter, setDomainFilter] = useState('');
+
+  const domains = ['', 'IA', 'Web', 'Mobile', 'DevOps', 'Cybersecurity', 'DataScience', 'IoT', 'Cloud'];
+  const domainColors = {
+    IA: '#7c3aed', Web: '#06b6d4', DevOps: '#f59e0b',
+    Cybersecurity: '#ef4444', DataScience: '#10b981',
+    Mobile: '#ec4899', IoT: '#8b5cf6', Cloud: '#3b82f6',
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [domainFilter]);
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (domainFilter) params.domain = domainFilter;
+      if (search) params.search = search;
+      const { data } = await projectsAPI.list(params);
+      setProjects(data.results || data || []);
+    } catch (err) {
+      console.error('Fetch projects error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchProjects();
+  };
+
+  const toggleFavorite = async (project) => {
+    try {
+      if (project.is_favorited) {
+        // Need to find the favorite ID - for simplicity, re-fetch
+        const { data: favs } = await favoritesAPI.list();
+        const fav = (favs.results || favs).find(f => f.project?.id === project.id);
+        if (fav) await favoritesAPI.remove(fav.id);
+      } else {
+        await favoritesAPI.add(project.id);
+      }
+      fetchProjects();
+    } catch (err) {
+      console.error('Toggle favorite error:', err);
+    }
+  };
+
+  return (
+    <div className="projects-page animate-fade-in">
+      <div className="page-header">
+        <h1>Catalogue de Projets</h1>
+        <p>Explorez les projets de PFE et stages disponibles</p>
+      </div>
+
+      {/* Filters */}
+      <div className="projects-filters glass-card">
+        <form className="search-form" onSubmit={handleSearch}>
+          <div className="search-wrapper">
+            <FiSearch className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Rechercher un projet..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </form>
+        <div className="domain-filters">
+          <FiFilter className="filter-icon" />
+          {domains.map((d) => (
+            <button
+              key={d}
+              className={`filter-chip ${domainFilter === d ? 'active' : ''}`}
+              onClick={() => setDomainFilter(d)}
+            >
+              {d || 'Tous'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Project Grid */}
+      <div className="grid grid-3">
+        {projects.map((project) => (
+          <div key={project.id} className="glass-card project-card-full">
+            <div className="project-card-header">
+              <span
+                className="project-domain-badge"
+                style={{ background: `${domainColors[project.domain] || '#7c3aed'}20`, color: domainColors[project.domain] || '#7c3aed' }}
+              >
+                {project.domain}
+              </span>
+              <button
+                className={`favorite-btn ${project.is_favorited ? 'favorited' : ''}`}
+                onClick={() => toggleFavorite(project)}
+              >
+                <FiHeart />
+              </button>
+            </div>
+            <h3>{project.title}</h3>
+            <p className="project-desc">{project.description?.slice(0, 150)}...</p>
+            <div className="project-meta">
+              <span className={`badge badge-${project.difficulty === 'beginner' ? 'success' : project.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>
+                {project.difficulty}
+              </span>
+              <span className="badge badge-info">{project.duration}</span>
+            </div>
+            <div className="project-tech">{project.technologies}</div>
+          </div>
+        ))}
+      </div>
+
+      {!loading && projects.length === 0 && (
+        <div className="empty-state">
+          <p>Aucun projet trouvé. Essayez d'autres filtres.</p>
+        </div>
+      )}
+    </div>
+  );
+}

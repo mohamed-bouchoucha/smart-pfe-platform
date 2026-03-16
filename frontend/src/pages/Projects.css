@@ -1,0 +1,110 @@
+.projects-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+}
+
+.search-form { display: flex; }
+
+.search-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.7rem 1rem 0.7rem 2.8rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.domain-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.filter-icon { color: var(--text-muted); flex-shrink: 0; }
+
+.filter-chip {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-light);
+}
+
+.filter-chip.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.project-card-full {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.project-card-full h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.project-meta {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: auto;
+  padding-top: var(--space-sm);
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.1rem;
+  transition: all var(--transition-fast);
+}
+
+.favorite-btn:hover,
+.favorite-btn.favorited {
+  color: #ef4444;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+}

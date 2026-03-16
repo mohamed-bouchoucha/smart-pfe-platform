@@ -1,0 +1,80 @@
+.admin-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: var(--space-sm);
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 1.2rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--accent-primary-light);
+  border-bottom-color: var(--accent-primary);
+}
+
+.domain-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.domain-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.domain-label {
+  width: 120px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.domain-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.domain-bar-fill {
+  height: 100%;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+  min-width: 4px;
+}
+
+.domain-count {
+  width: 40px;
+  text-align: right;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.action-btns {
+  display: flex;
+  gap: var(--space-xs);
+}
