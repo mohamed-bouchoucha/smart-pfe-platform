@@ -1,0 +1,73 @@
+from rest_framework import serializers
+from .models import Project, Skill, Favorite, ProjectSkill
+
+
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['id', 'name', 'category']
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    skills = SkillSerializer(many=True, read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    is_favorited = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = [
+            'id', 'title', 'description', 'domain', 'technologies',
+            'difficulty', 'duration', 'status', 'company_name',
+            'skills', 'created_by', 'created_by_name', 'is_favorited',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Favorite.objects.filter(user=request.user, project=obj).exists()
+        return False
+
+
+class ProjectCreateSerializer(serializers.ModelSerializer):
+    skill_ids = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = Project
+        fields = [
+            'id', 'title', 'description', 'domain', 'technologies',
+            'difficulty', 'duration', 'company_name', 'skill_ids',
+        ]
+
+    def create(self, validated_data):
+        skill_ids = validated_data.pop('skill_ids', [])
+        project = Project.objects.create(**validated_data)
+        for skill_id in skill_ids:
+            ProjectSkill.objects.create(project=project, skill_id=skill_id)
+        return project
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    project = ProjectSerializer(read_only=True)
+    project_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Favorite
+        fields = ['id', 'project', 'project_id', 'saved_at']
+        read_only_fields = ['id', 'saved_at']
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+    def validate_project_id(self, value):
+        if not Project.objects.filter(id=value, status='validated').exists():
+            raise serializers.ValidationError("Projet non trouvé ou non validé.")
+        if Favorite.objects.filter(
+            user=self.context['request'].user, project_id=value
+        ).exists():
+            raise serializers.ValidationError("Projet déjà dans vos favoris.")
+        return value
