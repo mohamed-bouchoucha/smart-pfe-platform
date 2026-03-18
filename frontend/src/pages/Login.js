@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock, FiCpu } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import './Auth.css';
 
 export default function Login() {
@@ -18,9 +19,12 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(email, password);
+      toast.success(`Bienvenue, ${user.first_name || user.username} !`);
       navigate(user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Email ou mot de passe incorrect.');
+      const msg = err.response?.data?.detail || 'Email ou mot de passe incorrect.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

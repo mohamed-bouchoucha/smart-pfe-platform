@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import Sidebar from './components/Sidebar/Sidebar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -99,6 +100,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <Toaster position="top-right" reverseOrder={false} />
         <AppRoutes />
       </AuthProvider>
     </Router>

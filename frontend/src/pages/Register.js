@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock, FiUser, FiBookOpen, FiCpu } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import './Auth.css';
 
 export default function Register() {
@@ -28,15 +29,13 @@ export default function Register() {
     setLoading(true);
     try {
       await register(formData);
+      toast.success('Compte créé avec succès !');
       navigate('/dashboard');
     } catch (err) {
       const data = err.response?.data;
-      if (data) {
-        const messages = Object.values(data).flat().join(' ');
-        setError(messages);
-      } else {
-        setError("Erreur lors de l'inscription.");
-      }
+      const msg = data ? Object.values(data).flat().join(' ') : "Erreur lors de l'inscription.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

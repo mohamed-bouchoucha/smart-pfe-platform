@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { conversationsAPI } from '../services/api';
+import { conversationsAPI, projectsAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
-import { FiSend, FiPlus, FiTrash2, FiMessageSquare, FiCpu } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiSend, FiPlus, FiTrash2, FiMessageSquare, FiCpu, FiExternalLink, FiStar } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import './Chatbot.css';
 
 export default function Chatbot() {
@@ -161,14 +163,28 @@ export default function Chatbot() {
         ) : (
           <div className="chat-messages">
             {messages.map((msg, i) => (
-              <div key={msg.id || i} className={`message ${msg.sender}`}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={msg.id || i}
+                className={`message ${msg.sender}`}
+              >
                 <div className="message-avatar">
                   {msg.sender === 'user' ? '👤' : '🤖'}
                 </div>
                 <div className="message-content">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  
+                  {/* Interactive Project Actions (parsed from markdown) */}
+                  {msg.sender === 'assistant' && msg.content.includes('**') && (
+                    <div className="message-actions">
+                      <button className="btn-small btn-outline" onClick={() => window.location.href='/projects'}>
+                        <FiExternalLink /> Explorer les projets
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </motion.div>
             ))}
             {sending && (
               <div className="message assistant">

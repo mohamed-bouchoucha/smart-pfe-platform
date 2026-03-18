@@ -33,6 +33,20 @@ app.include_router(analyze.router, prefix="/api", tags=["Document Analysis"])
 app.include_router(recommend.router, prefix="/api", tags=["Recommendations"])
 
 
+import httpx
+
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "ai-service"}
+    backend_status = "unknown"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("http://localhost:8000/api/projects/")
+            backend_status = "up" if resp.status_code == 200 else "down"
+    except:
+        backend_status = "down"
+
+    return {
+        "status": "healthy",
+        "service": "ai-service",
+        "backend_connectivity": backend_status
+    }
