@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { projectsAPI, favoritesAPI } from '../../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { projectsAPI, favoritesAPI } from '../services/api';
 import { FiSearch, FiFilter, FiHeart } from 'react-icons/fi';
 import './Projects.css';
 
@@ -16,11 +16,7 @@ export default function Projects() {
     Mobile: '#ec4899', IoT: '#8b5cf6', Cloud: '#3b82f6',
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, [domainFilter]);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
@@ -33,7 +29,11 @@ export default function Projects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [domainFilter, search]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleSearch = (e) => {
     e.preventDefault();

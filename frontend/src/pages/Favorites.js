@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { favoritesAPI } from '../../services/api';
+import { favoritesAPI } from '../services/api';
 import { FiHeart, FiTrash2 } from 'react-icons/fi';
 
 export default function Favorites() {

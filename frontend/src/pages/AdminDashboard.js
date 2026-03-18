@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminAPI, authAPI, projectsAPI } from '../../services/api';
+import { adminAPI, authAPI, projectsAPI } from '../services/api';
 import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX } from 'react-icons/fi';
 import './Admin.css';
 
@@ -8,7 +8,6 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [activeTab, setActiveTab] = useState('stats');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -26,8 +25,6 @@ export default function AdminDashboard() {
       if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data.results || projectsRes.value.data || []);
     } catch (err) {
       console.error('Admin fetch error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { projectsAPI, favoritesAPI, conversationsAPI } from '../../services/api';
+import { useAuth } from '../context/AuthContext';
+import { projectsAPI, favoritesAPI, conversationsAPI } from '../services/api';
 import { FiFolder, FiHeart, FiMessageSquare, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import './Dashboard.css';
@@ -9,7 +9,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ projects: 0, favorites: 0, conversations: 0 });
   const [recentProjects, setRecentProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -32,8 +31,6 @@ export default function Dashboard() {
         setRecentProjects(projects.results?.slice(0, 4) || []);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
-      } finally {
-        setLoading(false);
       }
     }
     fetchData();

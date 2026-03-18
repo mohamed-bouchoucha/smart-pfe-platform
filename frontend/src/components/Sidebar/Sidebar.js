@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiHome, FiMessageSquare, FiFolder, FiUpload,
-  FiHeart, FiSettings, FiLogOut, FiUsers, FiBarChart2, FiCpu,
+  FiHeart, FiLogOut, FiUsers, FiBarChart2, FiCpu,
 } from 'react-icons/fi';
 import './Sidebar.css';
 

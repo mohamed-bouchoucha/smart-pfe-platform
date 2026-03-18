@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { conversationsAPI } from '../../services/api';
+import { conversationsAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import { FiSend, FiPlus, FiTrash2, FiMessageSquare, FiCpu } from 'react-icons/fi';
 import './Chatbot.css';

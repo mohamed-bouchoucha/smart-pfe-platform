@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { documentsAPI } from '../../services/api';
+import { documentsAPI } from '../services/api';
 import { FiUploadCloud, FiFile, FiTrash2, FiCheck } from 'react-icons/fi';
 import './Upload.css';
 
