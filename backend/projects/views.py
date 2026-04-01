@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 
+from accounts.permissions import IsAdminOrSupervisor, IsAdminOrSupervisorOrReadOnly
 from .models import Project, Favorite, Skill
 from .serializers import (
     ProjectSerializer, ProjectCreateSerializer,
@@ -10,17 +11,8 @@ from .serializers import (
 )
 
 
-class IsAdminOrReadOnly(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_authenticated and (
-            request.user.is_staff or getattr(request.user, 'role', '') == 'admin'
-        )
-
-
 class ProjectListCreateView(generics.ListCreateAPIView):
-    """List validated projects (all) or create new project (admin)."""
+    """List validated projects (all) or create new project (admin/supervisor)."""
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['domain', 'difficulty', 'status', 'duration']
@@ -34,7 +26,7 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or getattr(user, 'role', '') == 'admin':
+        if user.role in ('admin', 'supervisor'):
             return Project.objects.all()
         return Project.objects.filter(status='validated')
 
@@ -45,13 +37,13 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Get, update, or delete a project."""
     serializer_class = ProjectSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsAdminOrSupervisorOrReadOnly]
     queryset = Project.objects.all()
 
 
 class ProjectValidateView(APIView):
-    """Admin: validate or reject a project."""
-    permission_classes = [permissions.IsAdminUser]
+    """Admin/Supervisor: validate or reject a project."""
+    permission_classes = [IsAdminOrSupervisor]
 
     def patch(self, request, pk):
         try:

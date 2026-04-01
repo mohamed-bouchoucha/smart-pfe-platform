@@ -7,6 +7,7 @@ class User(AbstractUser):
 
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Administrateur'
+        SUPERVISOR = 'supervisor', 'Encadrant'
         STUDENT = 'student', 'Étudiant'
 
     email = models.EmailField(unique=True)
@@ -34,6 +35,10 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == self.Role.ADMIN
+
+    @property
+    def is_supervisor(self):
+        return self.role == self.Role.SUPERVISOR
 
     @property
     def is_student(self):

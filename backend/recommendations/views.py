@@ -6,6 +6,7 @@ from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
 
+from accounts.permissions import IsAdminOrSupervisor
 from .models import Recommendation, Notification
 from .serializers import RecommendationSerializer, NotificationSerializer
 from projects.models import Project
@@ -47,8 +48,8 @@ class NotificationMarkReadView(APIView):
 
 
 class AdminStatsView(APIView):
-    """Admin-only: platform statistics dashboard."""
-    permission_classes = [permissions.IsAdminUser]
+    """Admin/Supervisor: platform statistics dashboard."""
+    permission_classes = [IsAdminOrSupervisor]
 
     def get(self, request):
         now = timezone.now()
@@ -58,6 +59,7 @@ class AdminStatsView(APIView):
         # User stats
         total_users = User.objects.count()
         students = User.objects.filter(role='student').count()
+        supervisors = User.objects.filter(role='supervisor').count()
         admins = User.objects.filter(role='admin').count()
         new_users_week = User.objects.filter(date_joined__gte=week_ago).count()
         active_today = User.objects.filter(last_login__gte=today_start).count()
@@ -80,6 +82,7 @@ class AdminStatsView(APIView):
             'users': {
                 'total': total_users,
                 'students': students,
+                'supervisors': supervisors,
                 'admins': admins,
                 'new_this_week': new_users_week,
                 'active_today': active_today,

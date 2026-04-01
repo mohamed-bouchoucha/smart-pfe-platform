@@ -9,12 +9,16 @@ class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    role = serializers.ChoiceField(
+        choices=[('student', 'Étudiant'), ('supervisor', 'Encadrant')],
+        default='student',
+    )
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'username', 'password', 'password_confirm',
-            'first_name', 'last_name', 'university', 'field_of_study',
+            'first_name', 'last_name', 'role', 'university', 'field_of_study',
         ]
 
     def validate(self, attrs):

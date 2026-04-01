@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, get_user_model
 
 from .serializers import RegisterSerializer, UserSerializer, LoginSerializer
+from .permissions import IsAdmin
 
 User = get_user_model()
 
@@ -71,5 +72,12 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 class UserListView(generics.ListAPIView):
     """Admin-only: list all users."""
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
     queryset = User.objects.all().order_by('-date_joined')
+
+
+class SupervisorListView(generics.ListAPIView):
+    """List all supervisors (for project assignment)."""
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.filter(role='supervisor').order_by('last_name')
