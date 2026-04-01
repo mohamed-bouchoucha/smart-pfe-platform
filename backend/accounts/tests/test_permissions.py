@@ -78,7 +78,7 @@ class RoleBasedAuthTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     # --- Project validation (admin/supervisor only) ---
-    def test_supervisor_can_validate_project(self):
+    def test_supervisor_can_transition_project(self):
         from projects.models import Project
         project = Project.objects.create(
             title='Test', description='Desc', domain='Web',
@@ -87,13 +87,13 @@ class RoleBasedAuthTests(TestCase):
         )
         self._auth(self.supervisor)
         resp = self.client.patch(
-            f'/api/projects/{project.id}/validate/',
-            {'status': 'validated'}, format='json',
+            f'/api/projects/{project.id}/transition/',
+            {'status': 'approved'}, format='json',
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data['status'], 'validated')
+        self.assertEqual(resp.data['status'], 'approved')
 
-    def test_student_cannot_validate_project(self):
+    def test_student_cannot_transition_project(self):
         from projects.models import Project
         project = Project.objects.create(
             title='Test2', description='Desc', domain='Web',
@@ -102,8 +102,8 @@ class RoleBasedAuthTests(TestCase):
         )
         self._auth(self.student)
         resp = self.client.patch(
-            f'/api/projects/{project.id}/validate/',
-            {'status': 'validated'}, format='json',
+            f'/api/projects/{project.id}/transition/',
+            {'status': 'approved'}, format='json',
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 

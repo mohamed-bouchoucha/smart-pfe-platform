@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 
 class Skill(models.Model):
@@ -48,9 +49,20 @@ class Project(models.Model):
         SIX_MONTHS = '6months', '6 mois'
 
     class Status(models.TextChoices):
-        DRAFT = 'draft', 'Brouillon'
-        VALIDATED = 'validated', 'Validé'
+        PROPOSED = 'proposed', 'Proposé'
+        APPROVED = 'approved', 'Approuvé'
+        IN_PROGRESS = 'in_progress', 'En cours'
+        COMPLETED = 'completed', 'Terminé'
         REJECTED = 'rejected', 'Rejeté'
+
+    # Valid workflow transitions: current_status -> [allowed_next_statuses]
+    VALID_TRANSITIONS = {
+        'proposed': ['approved', 'rejected'],
+        'approved': ['in_progress', 'rejected'],
+        'in_progress': ['completed'],
+        'completed': [],
+        'rejected': ['proposed'],  # Allow resubmission
+    }
 
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -58,13 +70,20 @@ class Project(models.Model):
     technologies = models.CharField(max_length=500, help_text="Comma-separated list")
     difficulty = models.CharField(max_length=20, choices=Difficulty.choices)
     duration = models.CharField(max_length=20, choices=Duration.choices)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROPOSED)
     company_name = models.CharField(max_length=255, blank=True)
     skills = models.ManyToManyField(Skill, through='ProjectSkill', related_name='projects', blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='created_projects',
+    )
+    supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='supervised_projects',
+        limit_choices_to={'role': 'supervisor'},
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -75,6 +94,49 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+    def can_transition_to(self, new_status):
+        """Check if transition from current status to new_status is valid."""
+        return new_status in self.VALID_TRANSITIONS.get(self.status, [])
+
+    def transition_to(self, new_status, changed_by):
+        """Transition to a new status with validation and history tracking."""
+        if not self.can_transition_to(new_status):
+            raise ValidationError(
+                f"Transition de '{self.get_status_display()}' vers "
+                f"'{dict(self.Status.choices).get(new_status, new_status)}' non autorisée."
+            )
+        old_status = self.status
+        self.status = new_status
+        self.save(update_fields=['status', 'updated_at'])
+        StatusHistory.objects.create(
+            project=self,
+            old_status=old_status,
+            new_status=new_status,
+            changed_by=changed_by,
+        )
+        return self
+
+
+class StatusHistory(models.Model):
+    """Audit trail for project status changes."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='status_history')
+    old_status = models.CharField(max_length=20)
+    new_status = models.CharField(max_length=20)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+    comment = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'status_history'
+        ordering = ['-changed_at']
+
+    def __str__(self):
+        return f"{self.project.title}: {self.old_status} → {self.new_status}"
 
 
 class ProjectSkill(models.Model):
