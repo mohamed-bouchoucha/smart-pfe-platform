@@ -1,4 +1,7 @@
+from django.http import FileResponse
 from rest_framework import permissions, status, parsers, viewsets, mixins
+from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import Document
@@ -24,12 +27,12 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
         return Document.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if getattr(self, 'action', None) == 'create':
             return DocumentUploadSerializer
         return DocumentSerializer
         
     def get_parsers(self):
-        if self.action == 'create':
+        if getattr(self, 'action', None) == 'create':
             return [parsers.MultiPartParser(), parsers.FormParser()]
         return super().get_parsers()
 
@@ -38,3 +41,14 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
         if instance.file:
             instance.file.delete(save=False)
         instance.delete()
+
+    @extend_schema(description="Download the document file.")
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        document = self.get_object()
+        if not document.file:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        response = FileResponse(document.file)
+        response['Content-Disposition'] = f'attachment; filename="{document.filename}"'
+        return response

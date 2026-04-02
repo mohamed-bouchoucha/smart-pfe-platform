@@ -16,6 +16,14 @@ class Document(models.Model):
         on_delete=models.CASCADE,
         related_name='documents',
     )
+    project = models.ForeignKey(
+        'projects.Project',
+        on_delete=models.CASCADE,
+        related_name='documents',
+        null=True,
+        blank=True,
+        help_text="Optional project this document is linked to."
+    )
     filename = models.CharField(max_length=255)
     file = models.FileField(upload_to='documents/%Y/%m/')
     doc_type = models.CharField(max_length=20, choices=DocType.choices)
