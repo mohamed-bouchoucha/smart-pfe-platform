@@ -74,7 +74,7 @@ class RoleBasedAuthTests(TestCase):
     # --- Supervisor list (all authenticated) ---
     def test_student_can_list_supervisors(self):
         self._auth(self.student)
-        resp = self.client.get('/api/auth/supervisors/')
+        resp = self.client.get('/api/auth/users/supervisors/')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     # --- Project validation (admin/supervisor only) ---

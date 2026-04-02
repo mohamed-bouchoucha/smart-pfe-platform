@@ -1,8 +1,10 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, get_user_model
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
 from .serializers import RegisterSerializer, UserSerializer, LoginSerializer
 from .permissions import IsAdmin
@@ -15,6 +17,7 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(responses={201: UserSerializer, 400: OpenApiResponse(description="Validation error")})
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -33,6 +36,7 @@ class LoginView(APIView):
     """Login with email and password, returns JWT tokens."""
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=LoginSerializer, responses={200: UserSerializer, 401: OpenApiResponse(description="Unauthorized"), 403: OpenApiResponse(description="Account disabled")})
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -69,15 +73,26 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-class UserListView(generics.ListAPIView):
-    """Admin-only: list all users."""
+@extend_schema_view(
+    list=extend_schema(description="Admin-only: list all users."),
+    supervisors=extend_schema(description="List all supervisors (for project assignment).")
+)
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for listing users and supervisors."""
     serializer_class = UserSerializer
-    permission_classes = [IsAdmin]
     queryset = User.objects.all().order_by('-date_joined')
 
+    def get_permissions(self):
+        if self.action == 'supervisors':
+            return [permissions.IsAuthenticated()]
+        return [IsAdmin()]
 
-class SupervisorListView(generics.ListAPIView):
-    """List all supervisors (for project assignment)."""
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    queryset = User.objects.filter(role='supervisor').order_by('last_name')
+    @action(detail=False, methods=['get'])
+    def supervisors(self, request):
+        supervisors = User.objects.filter(role='supervisor').order_by('last_name')
+        page = self.paginate_queryset(supervisors)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(supervisors, many=True)
+        return Response(serializer.data)

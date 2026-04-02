@@ -1,8 +1,11 @@
 import requests
 from django.conf import settings
-from rest_framework import generics, permissions, status
+import requests
+from django.conf import settings
+from rest_framework import permissions, status, viewsets, mixins
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
 from .models import Conversation, Message
 from .serializers import (
@@ -13,39 +16,40 @@ from .serializers import (
 )
 
 
-class ConversationListCreateView(generics.ListCreateAPIView):
-    """List user's conversations or create a new one."""
-    serializer_class = ConversationSerializer
+@extend_schema_view(
+    list=extend_schema(description="List user's conversations."),
+    create=extend_schema(description="Create a new conversation."),
+    retrieve=extend_schema(description="Get conversation with all messages.", responses={200: ConversationDetailSerializer}),
+    destroy=extend_schema(description="Delete a conversation.")
+)
+class ConversationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """ViewSet for Conversations."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Conversation.objects.none()
         return Conversation.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ConversationDetailSerializer
+        return ConversationSerializer
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
-class ConversationDetailView(generics.RetrieveDestroyAPIView):
-    """Get conversation with all messages, or delete it."""
-    serializer_class = ConversationDetailSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Conversation.objects.filter(user=self.request.user)
-
-
-class SendMessageView(APIView):
-    """Send a message in a conversation and get AI response."""
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk):
+    @extend_schema(
+        request=SendMessageSerializer,
+        responses={201: MessageSerializer(many=True), 404: OpenApiResponse(description="Conversation not found")},
+        description="Send a message in a conversation and get AI response."
+    )
+    @action(detail=True, methods=['post'], url_path='messages')
+    def send_message(self, request, pk=None):
         try:
-            conversation = Conversation.objects.get(pk=pk, user=request.user)
+            conversation = self.get_object()
         except Conversation.DoesNotExist:
-            return Response(
-                {'detail': 'Conversation non trouvée.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({'detail': 'Conversation non trouvée.'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = SendMessageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -60,10 +64,7 @@ class SendMessageView(APIView):
 
         # Build context from conversation history
         history = conversation.messages.all().values_list('sender', 'content')
-        messages_context = [
-            {'role': sender, 'content': content}
-            for sender, content in history
-        ]
+        messages_context = [{'role': sender, 'content': content} for sender, content in history]
 
         # Build user profile context
         user = request.user
@@ -82,11 +83,7 @@ class SendMessageView(APIView):
             ai_service_url = getattr(settings, 'AI_SERVICE_URL', 'http://localhost:8001')
             response = requests.post(
                 f"{ai_service_url}/api/chat",
-                json={
-                    'message': user_content,
-                    'context': messages_context,
-                    'user_profile': user_profile,
-                },
+                json={'message': user_content, 'context': messages_context, 'user_profile': user_profile},
                 timeout=30,
             )
             if response.status_code == 200:
@@ -94,7 +91,6 @@ class SendMessageView(APIView):
                 ai_response_text = ai_data.get('response', ai_response_text)
                 ai_metadata = ai_data.get('metadata', {})
         except requests.exceptions.RequestException:
-            # AI service unavailable — use fallback
             pass
 
         # Save the AI response

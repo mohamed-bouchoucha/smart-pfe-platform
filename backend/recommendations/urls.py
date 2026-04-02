@@ -1,9 +1,12 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+router = DefaultRouter()
+router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'', views.RecommendationViewSet, basename='recommendation')
+
 urlpatterns = [
-    path('', views.RecommendationListView.as_view(), name='recommendation_list'),
-    path('notifications/', views.NotificationListView.as_view(), name='notification_list'),
-    path('notifications/<int:pk>/read/', views.NotificationMarkReadView.as_view(), name='notification_mark_read'),
     path('admin/stats/', views.AdminStatsView.as_view(), name='admin_stats'),
+    path('', include(router.urls)),
 ]
