@@ -57,7 +57,7 @@ export const projectsAPI = {
   create: (data) => api.post('/projects/', data),
   update: (id, data) => api.patch(`/projects/${id}/`, data),
   delete: (id) => api.delete(`/projects/${id}/`),
-  validate: (id, status) => api.patch(`/projects/${id}/validate/`, { status }),
+  validate: (id, status) => api.patch(`/projects/${id}/transition/`, { status }),
   getSkills: () => api.get('/projects/skills/'),
 };
 
@@ -85,7 +85,7 @@ export const documentsAPI = {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('doc_type', docType);
-    return api.post('/documents/upload/', formData, {
+    return api.post('/documents/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
@@ -95,6 +95,7 @@ export const documentsAPI = {
 // ===================== RECOMMENDATIONS =====================
 export const recommendationsAPI = {
   list: () => api.get('/recommendations/'),
+  refresh: () => api.post('/recommendations/refresh/'),
 };
 
 // ===================== NOTIFICATIONS =====================

@@ -99,3 +99,46 @@
   font-size: var(--font-size-xs);
   margin-top: auto;
 }
+
+/* Recommendations Styles */
+.recommendation-card {
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.reco-score {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  color: var(--warning);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.reco-reason {
+  font-size: var(--font-size-sm);
+  color: var(--accent-primary-light);
+  font-style: italic;
+  margin-bottom: var(--space-xs);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-secondary);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.section-icon {
+  margin-right: var(--space-sm);
+  vertical-align: middle;
+}

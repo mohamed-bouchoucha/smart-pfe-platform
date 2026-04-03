@@ -1,3 +1,5 @@
+import requests
+import os
 from rest_framework import permissions, status, viewsets, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -5,6 +7,7 @@ from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
@@ -29,6 +32,75 @@ class RecommendationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if not self.request.user.is_authenticated:
             return Recommendation.objects.none()
         return Recommendation.objects.filter(user=self.request.user)
+
+    @extend_schema(
+        responses={200: RecommendationSerializer(many=True)},
+        description="Refresh AI-generated recommendations for the current user."
+    )
+    @action(detail=False, methods=['post'])
+    def refresh(self, request):
+        user = request.user
+        
+        # Prepare payload for AI Service
+        user_skills = list(user.skills.values_list('name', flat=True))
+        preferred_domains = [user.field_of_study] if user.field_of_study else []
+        
+        payload = {
+            "user_skills": user_skills,
+            "preferred_domains": preferred_domains,
+            "difficulty": "intermediate", # Default or could be a user setting
+        }
+        
+        AI_SERVICE_URL = getattr(settings, "AI_SERVICE_URL", "http://localhost:8001")
+        
+        try:
+            # Note: AI Service prefixes endpoints with /api as per its main.py
+            response = requests.post(f"{AI_SERVICE_URL}/api/recommend", json=payload, timeout=15)
+            if response.status_code == 200:
+                results = response.json().get('suggestions', [])
+                
+                # Delete old recommendations for this user
+                Recommendation.objects.filter(user=user).delete()
+                
+                new_recommendations = []
+                for item in results:
+                    try:
+                        # Find matching project by title (best effort)
+                        project = Project.objects.filter(title__iexact=item['title']).first()
+                        if project:
+                            reco = Recommendation(
+                                user=user,
+                                project=project,
+                                score=item.get('score', 0.5),
+                                reason=item.get('reason', ''),
+                                matched_skills=item.get('matched_skills', [])
+                            )
+                            new_recommendations.append(reco)
+                    except Exception as e:
+                        print(f"Error processing recommendation item: {e}")
+                
+                if new_recommendations:
+                    Recommendation.objects.bulk_create(new_recommendations)
+                    
+                    # Create a notification for the student
+                    Notification.objects.create(
+                        user=user,
+                        title="Nouvelles recommandations !",
+                        message=f"Nous avons trouvé {len(new_recommendations)} nouveaux projets correspondants à votre profil.",
+                        type=Notification.Type.SUCCESS
+                    )
+                
+                return Response(RecommendationSerializer(new_recommendations, many=True).data)
+            else:
+                return Response(
+                    {"error": f"Le service IA a renvoyé une erreur ({response.status_code})."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+        except Exception as e:
+            return Response(
+                {"error": f"Erreur de communication avec le service IA : {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema_view(

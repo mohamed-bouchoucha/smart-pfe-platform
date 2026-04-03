@@ -19,6 +19,7 @@ class User(AbstractUser):
     university = models.CharField(max_length=255, blank=True)
     field_of_study = models.CharField(max_length=255, blank=True)
     bio = models.TextField(blank=True)
+    skills = models.ManyToManyField('projects.Skill', related_name='users', blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     USERNAME_FIELD = 'email'
