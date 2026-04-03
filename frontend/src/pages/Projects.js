@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { projectsAPI, favoritesAPI } from '../services/api';
 import { FiSearch, FiFilter, FiHeart } from 'react-icons/fi';
 import './Projects.css';
 
 export default function Projects() {
+  const { t, i18n } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -29,7 +31,7 @@ export default function Projects() {
     } finally {
       setLoading(false);
     }
-  }, [domainFilter, search]);
+  }, [domainFilter, search, i18n.language]);
 
   useEffect(() => {
     fetchProjects();
@@ -43,7 +45,6 @@ export default function Projects() {
   const toggleFavorite = async (project) => {
     try {
       if (project.is_favorited) {
-        // Need to find the favorite ID - for simplicity, re-fetch
         const { data: favs } = await favoritesAPI.list();
         const fav = (favs.results || favs).find(f => f.project?.id === project.id);
         if (fav) await favoritesAPI.remove(fav.id);
@@ -59,8 +60,8 @@ export default function Projects() {
   return (
     <div className="projects-page animate-fade-in">
       <div className="page-header">
-        <h1>Catalogue de Projets</h1>
-        <p>Explorez les projets de PFE et stages disponibles</p>
+        <h1>{t('common.projects_catalog') || 'Catalogue de Projets'}</h1>
+        <p>{t('common.projects_subtitle') || 'Explorez les projets de PFE et stages disponibles'}</p>
       </div>
 
       {/* Filters */}
@@ -71,7 +72,7 @@ export default function Projects() {
             <input
               type="text"
               className="search-input"
-              placeholder="Rechercher un projet..."
+              placeholder={t('common.search_placeholder') || 'Rechercher un projet...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -85,7 +86,7 @@ export default function Projects() {
               className={`filter-chip ${domainFilter === d ? 'active' : ''}`}
               onClick={() => setDomainFilter(d)}
             >
-              {d || 'Tous'}
+              {d || t('common.all') || 'Tous'}
             </button>
           ))}
         </div>
@@ -113,7 +114,7 @@ export default function Projects() {
             <p className="project-desc">{project.description?.slice(0, 150)}...</p>
             <div className="project-meta">
               <span className={`badge badge-${project.difficulty === 'beginner' ? 'success' : project.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>
-                {project.difficulty}
+                {t(`common.difficulty_${project.difficulty}`) || project.difficulty}
               </span>
               <span className="badge badge-info">{project.duration}</span>
             </div>
@@ -124,7 +125,7 @@ export default function Projects() {
 
       {!loading && projects.length === 0 && (
         <div className="empty-state">
-          <p>Aucun projet trouvé. Essayez d'autres filtres.</p>
+          <p>{t('common.no_projects_found') || "Aucun projet trouvé. Essayez d'autres filtres."}</p>
         </div>
       )}
     </div>

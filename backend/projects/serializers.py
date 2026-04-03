@@ -5,7 +5,15 @@ from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
-        fields = ['id', 'name', 'category']
+        fields = ['id', 'name', 'name_en', 'category']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        # If language is English and name_en is provided, use it
+        if request and getattr(request, 'LANGUAGE_CODE', 'fr').startswith('en') and instance.name_en:
+            ret['name'] = instance.name_en
+        return ret
 
 
 class StatusHistorySerializer(serializers.ModelSerializer):
@@ -27,7 +35,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'description', 'domain', 'technologies',
+            'id', 'title', 'title_en', 'description', 'description_en', 'domain', 'technologies',
             'difficulty', 'duration', 'status', 'company_name',
             'skills', 'created_by', 'created_by_name',
             'supervisor', 'supervisor_name',
@@ -35,6 +43,17 @@ class ProjectSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        # Dynamic translation for title and description
+        if request and getattr(request, 'LANGUAGE_CODE', 'fr').startswith('en'):
+            if instance.title_en:
+                ret['title'] = instance.title_en
+            if instance.description_en:
+                ret['description'] = instance.description_en
+        return ret
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
@@ -54,7 +73,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'description', 'domain', 'technologies',
+            'id', 'title', 'title_en', 'description', 'description_en', 'domain', 'technologies',
             'difficulty', 'duration', 'company_name', 'supervisor', 'skill_ids',
         ]
 

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { favoritesAPI } from '../services/api';
 import { FiHeart, FiTrash2 } from 'react-icons/fi';
 
 export default function Favorites() {
+  const { t, i18n } = useTranslation();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchFavorites();
-  }, []);
+  }, [i18n.language]);
 
   const fetchFavorites = async () => {
     try {
@@ -39,16 +41,16 @@ export default function Favorites() {
   return (
     <div className="favorites-page animate-fade-in">
       <div className="page-header">
-        <h1>Mes Favoris</h1>
-        <p>Vos projets de PFE sauvegardés</p>
+        <h1>{t('common.favorites_title') || 'Mes Favoris'}</h1>
+        <p>{t('common.favorites_subtitle') || 'Vos projets de PFE sauvegardés'}</p>
       </div>
 
       {favorites.length === 0 && !loading ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
           <FiHeart style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
-          <p style={{ color: 'var(--text-secondary)' }}>Aucun projet favori pour le moment.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('common.no_favorites') || 'Aucun projet favori pour le moment.'}</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Explorez le catalogue et sauvegardez vos projets préférés !
+            {t('common.explore_projects') || 'Explorez le catalogue et sauvegardez vos projets préférés !'}
           </p>
         </div>
       ) : (
@@ -69,7 +71,7 @@ export default function Favorites() {
                   fav.project?.difficulty === 'beginner' ? 'success'
                   : fav.project?.difficulty === 'intermediate' ? 'warning' : 'danger'
                 }`}>
-                  {fav.project?.difficulty}
+                  {t(`common.difficulty_${fav.project?.difficulty}`) || fav.project?.difficulty}
                 </span>
               </div>
               <h3>{fav.project?.title}</h3>

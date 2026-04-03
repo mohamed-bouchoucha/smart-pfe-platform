@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { projectsAPI, favoritesAPI, conversationsAPI, recommendationsAPI } from '../services/api';
 import { FiFolder, FiHeart, FiMessageSquare, FiTrendingUp, FiArrowRight, FiRefreshCw, FiStar } from 'react-icons/fi';
@@ -8,6 +9,7 @@ import './Dashboard.css';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [stats, setStats] = useState({ projects: 0, favorites: 0, conversations: 0 });
   const [recentProjects, setRecentProjects] = useState([]);
   const [recommendedProjects, setRecommendedProjects] = useState([]);
@@ -16,7 +18,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
     fetchRecommendations();
-  }, []);
+  }, [i18n.language]); // Refetch if language changes to get translated content
 
   const fetchData = async () => {
     try {
@@ -55,9 +57,9 @@ export default function Dashboard() {
     try {
       const { data } = await recommendationsAPI.refresh();
       setRecommendedProjects(data);
-      toast.success('Recommandations mises à jour !');
+      toast.success(t('dashboard.refresh_success') || 'Recommandations mises à jour !');
     } catch (err) {
-      toast.error('Erreur lors de la mise à jour des recommandations.');
+      toast.error(t('dashboard.refresh_error') || 'Erreur lors de la mise à jour des recommandations.');
       console.error('Refresh recommendations error:', err);
     } finally {
       setLoadingRecommendations(false);
@@ -73,8 +75,8 @@ export default function Dashboard() {
   return (
     <div className="dashboard animate-fade-in">
       <div className="page-header">
-        <h1>Bonjour, {user?.first_name || user?.username} 👋</h1>
-        <p>Bienvenue sur votre tableau de bord Smart PFE</p>
+        <h1>{t('dashboard.welcome', { name: user?.first_name || user?.username }) || `Bonjour, ${user?.first_name || user?.username} 👋`}</h1>
+        <p>{t('dashboard.subtitle') || 'Bienvenue sur votre tableau de bord Smart PFE'}</p>
       </div>
 
       {/* Stats Cards */}
@@ -83,28 +85,28 @@ export default function Dashboard() {
           <div className="stat-icon purple"><FiFolder /></div>
           <div className="stat-info">
             <h3>{stats.projects}</h3>
-            <p>Projets disponibles</p>
+            <p>{t('admin.projects')}</p>
           </div>
         </div>
         <div className="glass-card stat-card">
           <div className="stat-icon cyan"><FiHeart /></div>
           <div className="stat-info">
             <h3>{stats.favorites}</h3>
-            <p>Projets favoris</p>
+            <p>{t('common.favorites')}</p>
           </div>
         </div>
         <div className="glass-card stat-card">
           <div className="stat-icon green"><FiMessageSquare /></div>
           <div className="stat-info">
             <h3>{stats.conversations}</h3>
-            <p>Conversations IA</p>
+            <p>{t('common.conversations')}</p>
           </div>
         </div>
         <div className="glass-card stat-card">
           <div className="stat-icon orange"><FiTrendingUp /></div>
           <div className="stat-info">
-            <h3>{recommendedProjects.length > 0 ? 'Optimal' : '--'}</h3>
-            <p>Statut Recommandation</p>
+            <h3>{recommendedProjects.length > 0 ? (t('dashboard.optimal') || 'Optimal') : '--'}</h3>
+            <p>{t('dashboard.reco_status') || 'Statut Recommandation'}</p>
           </div>
         </div>
       </div>
@@ -114,14 +116,14 @@ export default function Dashboard() {
         <div className="section-header">
           <h2>
             <FiStar className="section-icon" style={{ color: 'var(--warning)' }} />
-            Recommandé pour vous
+            {t('dashboard.recommended_for_you')}
           </h2>
           <button 
             className={`btn btn-ghost ${loadingRecommendations ? 'animate-spin' : ''}`}
             onClick={handleRefreshRecommendations}
             disabled={loadingRecommendations}
           >
-            <FiRefreshCw /> {loadingRecommendations ? 'Mise à jour...' : 'Actualiser'}
+            <FiRefreshCw /> {loadingRecommendations ? t('common.loading') : t('dashboard.refresh')}
           </button>
         </div>
         
@@ -144,52 +146,27 @@ export default function Dashboard() {
                 <p className="reco-reason">{reco.reason}</p>
                 <div className="project-tech">{reco.project?.technologies}</div>
                 <Link to="/projects" className="btn btn-ghost btn-sm" style={{ marginTop: '1rem' }}>
-                  En savoir plus <FiArrowRight />
+                  {t('common.learn_more') || 'En savoir plus'} <FiArrowRight />
                 </Link>
               </div>
             ))}
           </div>
         ) : (
           <div className="glass-card empty-state">
-            <p>Complétez votre profil ou uploadez un CV pour obtenir des recommandations personnalisées.</p>
+            <p>{t('dashboard.empty_recommendations') || 'Complétez votre profil pour obtenir des recommandations.'}</p>
             <Link to="/upload" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>
-              Ajouter des compétences
+              {t('dashboard.add_skills') || 'Ajouter des compétences'}
             </Link>
           </div>
         )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="dashboard-actions">
-        <h2>Actions rapides</h2>
-        <div className="grid grid-3">
-          <Link to="/chatbot" className="glass-card action-card">
-            <FiMessageSquare className="action-icon" />
-            <h3>Discuter avec l'IA</h3>
-            <p>Trouvez votre PFE idéal</p>
-            <FiArrowRight className="action-arrow" />
-          </Link>
-          <Link to="/projects" className="glass-card action-card">
-            <FiFolder className="action-icon" />
-            <h3>Explorer les projets</h3>
-            <p>Parcourir le catalogue</p>
-            <FiArrowRight className="action-arrow" />
-          </Link>
-          <Link to="/upload" className="glass-card action-card">
-            <FiTrendingUp className="action-icon" />
-            <h3>Uploader un CV</h3>
-            <p>Analyse IA de votre profil</p>
-            <FiArrowRight className="action-arrow" />
-          </Link>
-        </div>
       </div>
 
       {/* Recent Projects */}
       {recentProjects.length > 0 && (
         <div className="dashboard-section">
           <div className="section-header">
-            <h2>Projets récents</h2>
-            <Link to="/projects" className="btn btn-ghost">Voir tout <FiArrowRight /></Link>
+            <h2>{t('dashboard.recent_projects') || 'Projets récents'}</h2>
+            <Link to="/projects" className="btn btn-ghost">{t('common.view_all') || 'Voir tout'} <FiArrowRight /></Link>
           </div>
           <div className="grid grid-2">
             {recentProjects.map((project) => (

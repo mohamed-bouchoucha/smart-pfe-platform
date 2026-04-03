@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { conversationsAPI, projectsAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
+import { conversationsAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiPlus, FiTrash2, FiMessageSquare, FiCpu, FiExternalLink, FiStar } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+import { FiSend, FiPlus, FiTrash2, FiMessageSquare, FiCpu, FiExternalLink } from 'react-icons/fi';
 import './Chatbot.css';
 
 export default function Chatbot() {
+  const { t, i18n } = useTranslation();
   const [conversations, setConversations] = useState([]);
   const [activeConv, setActiveConv] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -16,7 +17,7 @@ export default function Chatbot() {
 
   useEffect(() => {
     fetchConversations();
-  }, []);
+  }, [i18n.language]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,7 +44,7 @@ export default function Chatbot() {
 
   const createNewConversation = async () => {
     try {
-      const { data } = await conversationsAPI.create({ title: 'Nouvelle conversation' });
+      const { data } = await conversationsAPI.create({ title: t('chatbot.new_conversation') || 'Nouvelle conversation' });
       setConversations([data, ...conversations]);
       setActiveConv(data);
       setMessages([]);
@@ -99,7 +100,7 @@ export default function Chatbot() {
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, sender: 'assistant', content: "Désolé, une erreur s'est produite. Réessayez.", timestamp: new Date().toISOString() },
+        { id: Date.now() + 1, sender: 'assistant', content: t('chatbot.error_message') || "Désolé, une erreur s'est produite. Réessayez.", timestamp: new Date().toISOString() },
       ]);
     } finally {
       setSending(false);
@@ -111,7 +112,7 @@ export default function Chatbot() {
       {/* Conversation Sidebar */}
       <div className="chat-sidebar">
         <button className="btn btn-primary btn-full" onClick={createNewConversation}>
-          <FiPlus /> Nouvelle conversation
+          <FiPlus /> {t('chatbot.new_conversation')}
         </button>
         <div className="conversation-list">
           {conversations.map((conv) => (
@@ -131,7 +132,7 @@ export default function Chatbot() {
             </div>
           ))}
           {conversations.length === 0 && (
-            <p className="no-conversations">Aucune conversation</p>
+            <p className="no-conversations">{t('chatbot.no_conversations')}</p>
           )}
         </div>
       </div>
@@ -141,14 +142,14 @@ export default function Chatbot() {
         {messages.length === 0 && !activeConv ? (
           <div className="chat-welcome">
             <FiCpu className="welcome-icon" />
-            <h2>Assistant Smart PFE</h2>
-            <p>Discutez avec l'IA pour trouver votre projet de PFE idéal</p>
+            <h2>{t('chatbot.welcome_title')}</h2>
+            <p>{t('chatbot.welcome_subtitle')}</p>
             <div className="welcome-suggestions">
               {[
-                "Je cherche un PFE en intelligence artificielle",
-                "Quels projets web sont populaires ?",
-                "Suggestions pour un stage en cybersécurité",
-                "J'ai des compétences en Python et React",
+                t('chatbot.suggestion_1'),
+                t('chatbot.suggestion_2'),
+                t('chatbot.suggestion_3'),
+                t('chatbot.suggestion_4'),
               ].map((suggestion, i) => (
                 <button
                   key={i}
@@ -175,11 +176,10 @@ export default function Chatbot() {
                 <div className="message-content">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                   
-                  {/* Interactive Project Actions (parsed from markdown) */}
                   {msg.sender === 'assistant' && msg.content.includes('**') && (
                     <div className="message-actions">
                       <button className="btn-small btn-outline" onClick={() => window.location.href='/projects'}>
-                        <FiExternalLink /> Explorer les projets
+                        <FiExternalLink /> {t('common.explore_projects')}
                       </button>
                     </div>
                   )}
@@ -205,7 +205,7 @@ export default function Chatbot() {
           <input
             type="text"
             className="chat-input"
-            placeholder="Décrivez votre projet idéal..."
+            placeholder={t('chatbot.input_placeholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={sending}

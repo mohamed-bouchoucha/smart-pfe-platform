@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock, FiCpu } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,10 +21,10 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      toast.success(`Bienvenue, ${user.first_name || user.username} !`);
+      toast.success(`${t('dashboard.welcome', { name: user.first_name || user.username })} !`);
       navigate(user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Email ou mot de passe incorrect.';
+      const msg = err.response?.data?.detail || t('auth.login_error') || 'Email ou mot de passe incorrect.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -44,21 +46,21 @@ export default function Login() {
             <FiCpu />
             <span>Smart PFE</span>
           </div>
-          <h1>Bon retour ! 👋</h1>
-          <p>Connectez-vous pour accéder à votre dashboard</p>
+          <h1>{t('auth.welcome_back')}</h1>
+          <p>{t('auth.login_subtitle')}</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('auth.email')}</label>
             <div className="input-icon-wrapper">
               <FiMail className="input-icon" />
               <input
                 type="email"
                 className="form-input"
-                placeholder="votre@email.com"
+                placeholder={t('auth.email_placeholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -67,13 +69,13 @@ export default function Login() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Mot de passe</label>
+            <label className="form-label">{t('auth.password')}</label>
             <div className="input-icon-wrapper">
               <FiLock className="input-icon" />
               <input
                 type="password"
                 className="form-input"
-                placeholder="••••••••"
+                placeholder={t('auth.password_placeholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -82,12 +84,12 @@ export default function Login() {
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? t('auth.logging_in') : t('auth.login_button')}
           </button>
         </form>
 
         <p className="auth-switch">
-          Pas encore de compte ? <Link to="/register">S'inscrire</Link>
+          {t('auth.no_account')} <Link to="/register">{t('auth.register')}</Link>
         </p>
       </div>
     </div>

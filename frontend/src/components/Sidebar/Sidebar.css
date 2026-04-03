@@ -113,9 +113,48 @@
   padding: var(--space-md) var(--space-xl);
   border-top: 1px solid var(--border-glass);
   display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.lang-switcher-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lang-toggle-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+}
+
+.lang-toggle-btn svg {
+  font-size: 0.9rem;
+}
+
+.footer-user-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
+  width: 100%;
 }
 
 .user-info {
@@ -123,18 +162,19 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
+  flex: 1;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
   background: var(--accent-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: white;
   flex-shrink: 0;
 }
@@ -146,16 +186,29 @@
 }
 
 .user-name {
-  font-size: var(--font-size-sm);
+  font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 .user-role {
-  font-size: var(--font-size-xs);
+  font-size: 0.7rem;
   color: var(--text-muted);
+}
+
+.logout-btn {
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.logout-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 @media (max-width: 768px) {

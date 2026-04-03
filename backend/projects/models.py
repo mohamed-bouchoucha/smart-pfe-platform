@@ -13,6 +13,7 @@ class Skill(models.Model):
         METHODOLOGY = 'methodology', 'Méthodologie'
 
     name = models.CharField(max_length=100, unique=True)
+    name_en = models.CharField(max_length=100, blank=True, null=True)
     category = models.CharField(max_length=20, choices=Category.choices)
 
     class Meta:
@@ -65,7 +66,9 @@ class Project(models.Model):
     }
 
     title = models.CharField(max_length=255)
+    title_en = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField()
+    description_en = models.TextField(blank=True, null=True)
     domain = models.CharField(max_length=20, choices=Domain.choices)
     technologies = models.CharField(max_length=500, help_text="Comma-separated list")
     difficulty = models.CharField(max_length=20, choices=Difficulty.choices)
