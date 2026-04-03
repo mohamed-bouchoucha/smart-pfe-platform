@@ -47,7 +47,10 @@ export const authAPI = {
   login: (data) => api.post('/auth/login/', data),
   getProfile: () => api.get('/auth/me/'),
   updateProfile: (data) => api.patch('/auth/me/', data),
-  getUsers: () => api.get('/auth/users/'),
+  getUsers: (params) => api.get('/auth/users/', { params }),
+  updateUser: (id, data) => api.patch(`/auth/users/${id}/`, data),
+  toggleActive: (id) => api.post(`/auth/users/${id}/toggle_active/`),
+  getSupervisors: () => api.get('/auth/users/supervisors/'),
 };
 
 // ===================== PROJECTS =====================
@@ -58,6 +61,7 @@ export const projectsAPI = {
   update: (id, data) => api.patch(`/projects/${id}/`, data),
   delete: (id) => api.delete(`/projects/${id}/`),
   validate: (id, status) => api.patch(`/projects/${id}/transition/`, { status }),
+  assign: (id, supervisorId) => api.patch(`/projects/${id}/assign/`, { supervisor_id: supervisorId }),
   getSkills: () => api.get('/projects/skills/'),
 };
 

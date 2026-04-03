@@ -1,39 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI, authAPI, projectsAPI } from '../services/api';
-import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX } from 'react-icons/fi';
+import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX, FiUserPlus, FiShield, FiUser } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 import './Admin.css';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [supervisors, setSupervisors] = useState([]);
   const [activeTab, setActiveTab] = useState('stats');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
-      const [statsRes, usersRes, projectsRes] = await Promise.allSettled([
+      const [statsRes, usersRes, projectsRes, supervisorsRes] = await Promise.allSettled([
         adminAPI.getStats(),
         authAPI.getUsers(),
         projectsAPI.list(),
+        authAPI.getSupervisors(),
       ]);
+
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
       if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data.results || usersRes.value.data || []);
       if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data.results || projectsRes.value.data || []);
+      if (supervisorsRes.status === 'fulfilled') setSupervisors(supervisorsRes.value.data.results || supervisorsRes.value.data || []);
     } catch (err) {
       console.error('Admin fetch error:', err);
+      toast.error('Erreur lors du chargement des données.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleProjectStatus = async (id, status) => {
     try {
       await projectsAPI.validate(id, status);
+      toast.success(`Projet ${status === 'validated' ? 'validé' : 'rejeté'}`);
       fetchData();
     } catch (err) {
-      console.error('Validate error:', err);
+      toast.error('Erreur lors du changement de statut.');
+    }
+  };
+
+  const handleAssignSupervisor = async (projectId, supervisorId) => {
+    try {
+      await projectsAPI.assign(projectId, supervisorId);
+      toast.success('Encadrant assigné avec succès.');
+      fetchData();
+    } catch (err) {
+      toast.error("Erreur lors de l'assignation.");
+    }
+  };
+
+  const handleToggleUserActive = async (userId) => {
+    try {
+      await authAPI.toggleActive(userId);
+      toast.success('Statut utilisateur mis à jour.');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erreur lors du changement de statut.');
+    }
+  };
+
+  const handleChangeRole = async (userId, newRole) => {
+    try {
+      await authAPI.updateUser(userId, { role: newRole });
+      toast.success(`Rôle mis à jour : ${newRole}`);
+      fetchData();
+    } catch (err) {
+      toast.error('Erreur lors du changement de rôle.');
     }
   };
 
@@ -46,22 +87,26 @@ export default function AdminDashboard() {
 
       {/* Tabs */}
       <div className="admin-tabs">
-        {['stats', 'users', 'projects'].map((tab) => (
+        {[
+          { key: 'stats', label: 'Statistiques', icon: <FiActivity /> },
+          { key: 'users', label: 'Utilisateurs', icon: <FiUsers /> },
+          { key: 'projects', label: 'Projets', icon: <FiFolder /> },
+        ].map((tab) => (
           <button
-            key={tab}
-            className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            key={tab.key}
+            className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
           >
-            {tab === 'stats' && <><FiActivity /> Statistiques</>}
-            {tab === 'users' && <><FiUsers /> Utilisateurs</>}
-            {tab === 'projects' && <><FiFolder /> Projets</>}
+            {tab.icon} {tab.label}
           </button>
         ))}
       </div>
 
+      {loading && <div className="loading-overlay">Chargement...</div>}
+
       {/* Stats Tab */}
       {activeTab === 'stats' && stats && (
-        <div>
+        <div className="stats-content">
           <div className="grid grid-4">
             <div className="glass-card stat-card">
               <div className="stat-icon purple"><FiUsers /></div>
@@ -93,9 +138,8 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Domain Stats */}
-          <div className="glass-card" style={{ marginTop: 'var(--space-xl)' }}>
-            <h3 style={{ marginBottom: 'var(--space-md)' }}>Projets par domaine</h3>
+          <div className="glass-card domain-stats-card">
+            <h3>Projets par domaine</h3>
             <div className="domain-stats">
               {stats.projects?.by_domain && Object.entries(stats.projects.by_domain).map(([domain, count]) => (
                 <div key={domain} className="domain-bar">
@@ -116,28 +160,55 @@ export default function AdminDashboard() {
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-        <div className="glass-card">
+        <div className="glass-card table-section">
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Nom</th>
-                  <th>Email</th>
+                  <th>Utilisateur</th>
                   <th>Rôle</th>
                   <th>Université</th>
-                  <th>Inscrit le</th>
                   <th>Statut</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id}>
-                    <td>{u.first_name} {u.last_name}</td>
-                    <td>{u.email}</td>
-                    <td><span className={`badge badge-${u.role === 'admin' ? 'primary' : 'info'}`}>{u.role}</span></td>
+                    <td>
+                      <div className="user-cell">
+                        <span className="user-initials">{u.first_name?.[0]}{u.last_name?.[0]}</span>
+                        <div className="user-meta">
+                          <span className="user-full-name">{u.first_name} {u.last_name}</span>
+                          <span className="user-email">{u.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <select 
+                        className="role-select" 
+                        value={u.role} 
+                        onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                      >
+                        <option value="student">Étudiant</option>
+                        <option value="supervisor">Encadrant</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
                     <td>{u.university || '—'}</td>
-                    <td>{new Date(u.date_joined).toLocaleDateString('fr-FR')}</td>
-                    <td><span className={`badge badge-${u.is_active ? 'success' : 'danger'}`}>{u.is_active ? 'Actif' : 'Inactif'}</span></td>
+                    <td>
+                      <span className={`badge badge-${u.is_active ? 'success' : 'danger'}`}>
+                        {u.is_active ? 'Actif' : 'Désactivé'}
+                      </span>
+                    </td>
+                    <td>
+                      <button 
+                        className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`}
+                        onClick={() => handleToggleUserActive(u.id)}
+                      >
+                        {u.is_active ? 'Désactiver' : 'Activer'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -148,14 +219,14 @@ export default function AdminDashboard() {
 
       {/* Projects Tab */}
       {activeTab === 'projects' && (
-        <div className="glass-card">
+        <div className="glass-card table-section">
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Titre</th>
-                  <th>Domaine</th>
-                  <th>Difficulté</th>
+                  <th>Titre du Projet</th>
+                  <th>Domaine / Difficulté</th>
+                  <th>Encadrant</th>
                   <th>Statut</th>
                   <th>Actions</th>
                 </tr>
@@ -163,20 +234,47 @@ export default function AdminDashboard() {
               <tbody>
                 {projects.map((p) => (
                   <tr key={p.id}>
-                    <td>{p.title}</td>
-                    <td><span className="badge badge-info">{p.domain}</span></td>
-                    <td><span className={`badge badge-${p.difficulty === 'beginner' ? 'success' : p.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>{p.difficulty}</span></td>
-                    <td><span className={`badge badge-${p.status === 'validated' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}`}>{p.status}</span></td>
+                    <td>
+                      <div className="project-cell">
+                        <span className="project-title">{p.title}</span>
+                        <span className="project-owner">Par {p.created_by_name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="tags-cell">
+                        <span className="badge badge-info">{p.domain}</span>
+                        <span className={`badge badge-${p.difficulty === 'beginner' ? 'success' : p.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>
+                          {p.difficulty}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <select 
+                        className="supervisor-select"
+                        value={p.supervisor || ''}
+                        onChange={(e) => handleAssignSupervisor(p.id, e.target.value)}
+                      >
+                        <option value="">Non assigné</option>
+                        {supervisors.map(s => (
+                          <option key={s.id} value={s.id}>M. {s.last_name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${p.status === 'validated' || p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}`}>
+                        {p.status}
+                      </span>
+                    </td>
                     <td>
                       <div className="action-btns">
-                        {p.status !== 'validated' && (
-                          <button className="btn btn-ghost" title="Valider" onClick={() => handleProjectStatus(p.id, 'validated')}>
-                            <FiCheck style={{ color: 'var(--success)' }} />
+                        {(p.status === 'proposed' || p.status === 'rejected') && (
+                          <button className="btn-icon success" title="Approuver" onClick={() => handleProjectStatus(p.id, 'approved')}>
+                            <FiCheck />
                           </button>
                         )}
                         {p.status !== 'rejected' && (
-                          <button className="btn btn-ghost" title="Rejeter" onClick={() => handleProjectStatus(p.id, 'rejected')}>
-                            <FiX style={{ color: 'var(--danger)' }} />
+                          <button className="btn-icon danger" title="Rejeter" onClick={() => handleProjectStatus(p.id, 'rejected')}>
+                            <FiX />
                           </button>
                         )}
                       </div>

@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
-from .serializers import RegisterSerializer, UserSerializer, LoginSerializer
+from .serializers import RegisterSerializer, UserSerializer, UserAdminSerializer, LoginSerializer
 from .permissions import IsAdmin
 
 User = get_user_model()
@@ -75,12 +75,20 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
 @extend_schema_view(
     list=extend_schema(description="Admin-only: list all users."),
+    retrieve=extend_schema(description="Admin-only: get user details."),
+    update=extend_schema(description="Admin-only: update user role or status."),
+    partial_update=extend_schema(description="Admin-only: partially update user."),
+    destroy=extend_schema(description="Admin-only: deactivate account."),
     supervisors=extend_schema(description="List all supervisors (for project assignment).")
 )
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for listing users and supervisors."""
-    serializer_class = UserSerializer
+class UserViewSet(viewsets.ModelViewSet):
+    """ViewSet for Admin to manage users and others to list supervisors."""
     queryset = User.objects.all().order_by('-date_joined')
+    
+    def get_serializer_class(self):
+        if self.request.user.is_authenticated and self.request.user.role == 'admin':
+            return UserAdminSerializer
+        return UserSerializer
 
     def get_permissions(self):
         if self.action == 'supervisors':
@@ -89,6 +97,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def supervisors(self, request):
+        """List all users with 'supervisor' role."""
         supervisors = User.objects.filter(role='supervisor').order_by('last_name')
         page = self.paginate_queryset(supervisors)
         if page is not None:
@@ -96,3 +105,20 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(supervisors, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        responses={200: UserAdminSerializer, 400: OpenApiResponse(description="Self-deactivation error")},
+        description="Toggle a user's is_active status (Admin only)."
+    )
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Enable or disable a user account."""
+        user_to_toggle = self.get_object()
+        if user_to_toggle == request.user:
+            return Response(
+                {'detail': 'Vous ne pouvez pas désactiver votre propre compte.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user_to_toggle.is_active = not user_to_toggle.is_active
+        user_to_toggle.save(update_fields=['is_active'])
+        return Response(UserAdminSerializer(user_to_toggle).data)
