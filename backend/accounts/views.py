@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, permissions, status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
@@ -84,6 +84,8 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for Admin to manage users and others to list supervisors."""
     queryset = User.objects.all().order_by('-date_joined')
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name', 'email', 'username']
     
     def get_serializer_class(self):
         if self.request.user.is_authenticated and self.request.user.role == 'admin':

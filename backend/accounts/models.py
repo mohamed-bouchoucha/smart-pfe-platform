@@ -21,6 +21,7 @@ class User(AbstractUser):
     bio = models.TextField(blank=True)
     skills = models.ManyToManyField('projects.Skill', related_name='users', blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    email_notifications = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

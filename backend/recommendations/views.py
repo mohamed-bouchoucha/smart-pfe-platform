@@ -136,6 +136,16 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         notification.save()
         return Response(self.get_serializer(notification).data)
 
+    @extend_schema(
+        responses={200: NotificationSerializer(many=True)},
+        description="Mark all notifications for the current user as read."
+    )
+    @action(detail=False, methods=['patch'])
+    def mark_all_as_read(self, request):
+        notifications = self.get_queryset().filter(is_read=False)
+        notifications.update(is_read=True)
+        return Response({'detail': 'Toutes les notifications ont été marquées comme lues.'})
+
 
 class AdminStatsView(APIView):
     """Admin/Supervisor: platform statistics dashboard."""

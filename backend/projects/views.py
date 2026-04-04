@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from accounts.permissions import IsAdminOrSupervisor, IsAdminOrSupervisorOrReadOnly
 from .models import Project, Favorite, Skill, StatusHistory
+from .filters import ProjectFilter
 from .serializers import (
     ProjectSerializer, ProjectCreateSerializer,
     FavoriteSerializer, SkillSerializer,
@@ -26,9 +27,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """ViewSet for Projects."""
     permission_classes = [IsAdminOrSupervisorOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['domain', 'difficulty', 'status', 'duration']
-    search_fields = ['title', 'description', 'technologies']
-    ordering_fields = ['created_at', 'title']
+    filterset_class = ProjectFilter
+    search_fields = [
+        'title', 'title_en', 'description', 'description_en', 
+        'technologies', 'company_name', 'created_by__username'
+    ]
+    ordering_fields = ['created_at', 'title', 'difficulty']
 
     def get_serializer_class(self):
         if self.action == 'create':
