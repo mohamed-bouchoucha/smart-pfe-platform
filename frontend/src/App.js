@@ -11,6 +11,7 @@ import Projects from './pages/Projects';
 import Upload from './pages/Upload';
 import Favorites from './pages/Favorites';
 import AdminDashboard from './pages/AdminDashboard';
+import HomePage from './pages/HomePage';
 import './index.css';
 
 function ProtectedRoute({ children }) {
@@ -89,9 +90,9 @@ function AppRoutes() {
         <AdminRoute><AppLayout><AdminDashboard /></AppLayout></AdminRoute>
       } />
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" />} />
-      <Route path="*" element={<Navigate to="/dashboard" />} />
+      {/* Home and catch-all */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
