@@ -40,32 +40,31 @@ class RecommendationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def refresh(self, request):
         user = request.user
-        
-        # Prepare payload for AI Service
         user_skills = list(user.skills.values_list('name', flat=True))
         preferred_domains = [user.field_of_study] if user.field_of_study else []
+        
+        # Get current language from request
+        lang = getattr(request, 'LANGUAGE_CODE', 'fr')
         
         payload = {
             "user_skills": user_skills,
             "preferred_domains": preferred_domains,
-            "difficulty": "intermediate", # Default or could be a user setting
+            "difficulty": "intermediate",
+            "language": lang,
         }
         
         AI_SERVICE_URL = getattr(settings, "AI_SERVICE_URL", "http://localhost:8001")
         
         try:
-            # Note: AI Service prefixes endpoints with /api as per its main.py
             response = requests.post(f"{AI_SERVICE_URL}/api/recommend", json=payload, timeout=15)
             if response.status_code == 200:
                 results = response.json().get('suggestions', [])
                 
-                # Delete old recommendations for this user
                 Recommendation.objects.filter(user=user).delete()
                 
                 new_recommendations = []
                 for item in results:
                     try:
-                        # Find matching project by title (best effort)
                         project = Project.objects.filter(title__iexact=item['title']).first()
                         if project:
                             reco = Recommendation(
@@ -82,11 +81,18 @@ class RecommendationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 if new_recommendations:
                     Recommendation.objects.bulk_create(new_recommendations)
                     
-                    # Create a notification for the student
+                    # Localized notification
+                    if lang.startswith('en'):
+                        notif_title = "New Recommendations!"
+                        notif_msg = f"We found {len(new_recommendations)} new projects matching your profile."
+                    else:
+                        notif_title = "Nouvelles recommandations !"
+                        notif_msg = f"Nous avons trouvé {len(new_recommendations)} nouveaux projets correspondants à votre profil."
+
                     Notification.objects.create(
                         user=user,
-                        title="Nouvelles recommandations !",
-                        message=f"Nous avons trouvé {len(new_recommendations)} nouveaux projets correspondants à votre profil.",
+                        title=notif_title,
+                        message=notif_msg,
                         type=Notification.Type.SUCCESS
                     )
                 

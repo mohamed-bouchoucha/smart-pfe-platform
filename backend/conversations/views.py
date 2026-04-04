@@ -75,15 +75,23 @@ class ConversationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins
             'bio': user.bio,
         }
 
+        # Get language preference
+        lang = getattr(request, 'LANGUAGE_CODE', 'fr')
+
         # Call AI service
-        ai_response_text = "Je suis l'assistant Smart PFE. Je peux vous aider à trouver des idées de projets de PFE. Pouvez-vous me dire quel domaine vous intéresse ?"
+        ai_response_text = "Je suis l'assistant Smart PFE. Je peux vous aider à trouver des idées de projets de PFE. Pouvez-vous me dire quel domaine vous intéresse ?" if lang == 'fr' else "I am the Smart PFE assistant. I can help you find PFE project ideas. Can you tell me which domain interests you?"
         ai_metadata = {}
 
         try:
             ai_service_url = getattr(settings, 'AI_SERVICE_URL', 'http://localhost:8001')
             response = requests.post(
                 f"{ai_service_url}/api/chat",
-                json={'message': user_content, 'context': messages_context, 'user_profile': user_profile},
+                json={
+                    'message': user_content,
+                    'context': messages_context,
+                    'user_profile': user_profile,
+                    'language': lang
+                },
                 timeout=30,
             )
             if response.status_code == 200:

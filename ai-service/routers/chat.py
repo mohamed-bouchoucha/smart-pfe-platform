@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     message: str
     context: List[dict] = []
     user_profile: Optional[dict] = None
+    language: str = "fr"
 
 class ChatResponse(BaseModel):
     response: str
@@ -22,8 +23,8 @@ Your goal is to help students find the perfect Final Year Project (PFE) based on
 
 CORE CAPABILITIES:
 1. **Multilingualism**: Respond in the same language as the user (Français, English, or Arabic). Use a professional and encouraging tone.
-2. **Project Expert**: Use the provided project context to suggest REAL projects from our database.
-3. **Guidance**: If the user is unsure, ask about their favorite technologies or domains.
+2. **Project Expert**: Use the provided project context to suggest REAL projects from our database. 
+3. **Language Context**: The user's preferred language is {language}. Please prioritize this language for your explanations and suggestions.
 
 INTERACTIVITY:
 - Use Markdown for formatting.
@@ -31,12 +32,13 @@ INTERACTIVITY:
 - If you find no matching project, propose a creative new one and mark it as (Nouveau).
 """
 
-async def search_projects(query: str) -> str:
+async def search_projects(query: str, language: str = "fr") -> str:
     """Fetch projects from backend and filter by query keywords."""
     try:
         BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api")
+        headers = {"Accept-Language": language}
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BACKEND_URL}/projects/")
+            response = await client.get(f"{BACKEND_URL}/projects/", headers=headers)
             if response.status_code != 200:
                 return ""
             
@@ -54,7 +56,8 @@ async def search_projects(query: str) -> str:
                     matches.append(f"- **{title}**: {desc} (Tech: {techs})")
             
             if matches:
-                return "\nPROJETS RÉELS DISPONIBLES DANS NOTRE BASE:\n" + "\n".join(matches[:3])
+                header = "PROJETS RÉELS DISPONIBLES:" if language.startswith('en') else "PROJETS RÉELS DISPONIBLES DANS NOTRE BASE:"
+                return f"\n{header}\n" + "\n".join(matches[:3])
             return ""
     except Exception as e:
         print(f"Error in search_projects: {e}")
@@ -62,9 +65,9 @@ async def search_projects(query: str) -> str:
 
 async def _build_messages(request: ChatRequest) -> List[dict]:
     """Build the message payload for the LLM."""
-    project_context = await search_projects(request.message)
+    project_context = await search_projects(request.message, request.language)
     
-    system_content = SYSTEM_PROMPT
+    system_content = SYSTEM_PROMPT.format(language=request.language)
     if project_context:
         system_content += f"\n\n{project_context}"
     

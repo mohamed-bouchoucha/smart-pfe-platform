@@ -10,7 +10,7 @@ class RecommendRequest(BaseModel):
     preferred_domains: List[str] = []
     difficulty: str = "intermediate"
     duration: str = "3months"
-
+    language: str = "fr"
 
 class ProjectSuggestion(BaseModel):
     title: str
@@ -38,9 +38,10 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api")
 async def recommend_projects(request: RecommendRequest):
     """Generate project recommendations based on user skills and preferences."""
     try:
-        # Fetch projects from backend
+        # Fetch projects from backend with language awareness
+        headers = {"Accept-Language": request.language}
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BACKEND_URL}/projects/")
+            response = await client.get(f"{BACKEND_URL}/projects/", headers=headers)
             if response.status_code == 200:
                 data = response.json()
                 projects = data.get("results", []) if isinstance(data, dict) else data
@@ -58,7 +59,6 @@ async def recommend_projects(request: RecommendRequest):
         matched = []
 
         # Skill matching (40% weight)
-        # Technologies is a comma-separated string in the backend model
         techs = [t.strip().lower() for t in project.get("technologies", "").split(",")]
         skill_matches = sum(1 for s in user_skills_lower if any(s in t for t in techs))
         if techs:
@@ -83,14 +83,20 @@ async def recommend_projects(request: RecommendRequest):
         score += 0.1
 
         if score >= 0.2:
-            reason = f"Correspond à {len(matched)} de vos compétences"
-            if project.get("domain") in request.preferred_domains:
-                reason += f" et au domaine {project.get('domain')}"
+            # Localize the reason
+            if request.language.startswith('en'):
+                reason = f"Matches {len(matched)} of your skills"
+                if project.get("domain") in request.preferred_domains:
+                    reason += f" and the domain {project.get('domain')}"
+            else:
+                reason = f"Correspond à {len(matched)} de vos compétences"
+                if project.get("domain") in request.preferred_domains:
+                    reason += f" et au domaine {project.get('domain')}"
 
             suggestions.append(ProjectSuggestion(
-                title=project.get("title", "Sans titre"),
+                title=project.get("title", "Sans titre" if request.language == "fr" else "Untitled"),
                 description=project.get("description", ""),
-                domain=project.get("domain", "Autre"),
+                domain=project.get("domain", "Autre" if request.language == "fr" else "Other"),
                 technologies=project.get("technologies", ""),
                 difficulty=project.get("difficulty", "intermediate"),
                 duration=request.duration,
