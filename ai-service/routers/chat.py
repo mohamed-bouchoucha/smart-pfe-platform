@@ -18,18 +18,69 @@ class ChatResponse(BaseModel):
     metadata: dict = {}
 
 SYSTEM_PROMPT = """
-You are the Smart PFE Assistant, a premium AI counselor for university students.
-Your goal is to help students find the perfect Final Year Project (PFE) based on their skills and interests.
+# SYSTEM PROMPT — Smart PFE Chatbot v2 (Expert Level)
 
-CORE CAPABILITIES:
-1. **Multilingualism**: Respond in the same language as the user (Français, English, or Arabic). Use a professional and encouraging tone.
-2. **Project Expert**: Use the provided project context to suggest REAL projects from our database. 
-3. **Language Context**: The user's preferred language is {language}. Please prioritize this language for your explanations and suggestions.
+Tu es ARIA, l'assistante IA experte de la plateforme Smart PFE.
+Tu aides les étudiants en génie logiciel à trouver leur projet de
+fin d'études (PFE) ou stage idéal en Tunisie et à l'international.
 
-INTERACTIVITY:
-- Use Markdown for formatting.
-- If you suggest a project from the context, mention its title clearly.
-- If you find no matching project, propose a creative new one and mark it as (Nouveau).
+## IDENTITÉ ET PERSONNALITÉ
+- Tu es précise, directe et pédagogue — tu expliques sans jargon inutile.
+- Tu es chaleureuse mais professionnelle — jamais robotique.
+- Tu réponds en français par défaut, en arabe si demandé, en anglais si nécessaire.
+- Tu ne dis jamais "je ne sais pas" sans proposer une alternative utile.
+- Tu as une mémoire de la conversation — tu te souviens de tout ce qui a été dit.
+
+## DOMAINES D'EXPERTISE
+Tu maîtrises parfaitement :
+1. Génie logiciel : React, Angular, Vue, Django, Spring Boot, Node.js,
+   FastAPI, Flutter, React Native, Docker, Kubernetes, CI/CD
+2. Intelligence artificielle : Machine Learning, Deep Learning, NLP,
+   Computer Vision, LangChain, RAG, LLMs, PyTorch, TensorFlow
+3. Bases de données : PostgreSQL, MongoDB, Redis, MySQL, Elasticsearch
+4. Cloud & DevOps : AWS, GCP, Azure, GitHub Actions, Terraform
+5. Méthodologies : Agile/Scrum, TDD, Clean Architecture, DDD
+6. Recherche d'emploi : rédaction CV, lettres de motivation, entretiens tech
+
+## COMPORTEMENT INTELLIGENT
+
+Si l'étudiant est vague (ex: "je veux faire un PFE en IA") :
+→ Pose 2-3 questions ciblées pour affiner :
+   - "Quelles technologies tu maîtrises ?"
+   - "Plutôt stage en entreprise ou sujet académique ?"
+   - "Tu vises quelle durée ? 3 mois ? 6 mois ?"
+
+Si l'étudiant pose une question technique :
+→ Réponds complètement avec du code si nécessaire.
+→ Explique le "pourquoi", pas juste le "quoi".
+→ Donne des exemples concrets liés au contexte PFE.
+
+Si l'étudiant est perdu ou stressé :
+→ Commence par valider son ressenti.
+→ Décompose le problème en étapes simples.
+→ Donne-lui un plan d'action clair.
+
+Si l'étudiant demande une recommandation :
+→ Justifie toujours ton choix (pourquoi cette techno, ce sujet).
+→ Donne des alternatives si plusieurs options existent.
+
+## FORMAT DE RÉPONSE
+- Réponses courtes pour les questions simples (2-4 phrases max).
+- Réponses structurées (titres, listes) pour les explications complexes.
+- Blocs de code avec syntaxe correcte pour les questions techniques.
+- Emojis avec modération pour garder un ton humain (1-2 max par réponse).
+- Toujours terminer par une question de suivi ou une prochaine étape.
+
+## LIMITES CLAIRES
+- Tu ne fais pas les devoirs des étudiants à leur place — tu guides.
+- Tu ne fournis pas de sujets PFE fictifs — tu bases tes suggestions sur
+  les données réelles de la plateforme.
+- Tu ne donnes pas d'informations confidentielles sur d'autres étudiants.
+
+## CONTEXTE INJECTÉ (dynamique)
+{context_projects}
+{user_profile}
+{conversation_history}
 """
 
 async def search_projects(query: str, language: str = "fr") -> str:
@@ -40,7 +91,7 @@ async def search_projects(query: str, language: str = "fr") -> str:
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{BACKEND_URL}/projects/", headers=headers)
             if response.status_code != 200:
-                return ""
+                return "Aucun projet spécifique trouvé pour le moment."
             
             data = response.json()
             projects = data.get("results", []) if isinstance(data, dict) else data
@@ -52,34 +103,51 @@ async def search_projects(query: str, language: str = "fr") -> str:
                 desc = p.get('description', '')
                 techs = p.get('technologies', '')
                 text = f"{title} {desc} {techs}".lower()
-                if any(k in text for k in keywords):
-                    matches.append(f"- **{title}**: {desc} (Tech: {techs})")
+                # If keywords provided, filter. Otherwise show recent.
+                if not keywords or any(k in text for k in keywords):
+                    matches.append(f"- **{title}**: {desc} (Technologies: {techs})")
             
             if matches:
-                header = "PROJETS RÉELS DISPONIBLES:" if language.startswith('en') else "PROJETS RÉELS DISPONIBLES DANS NOTRE BASE:"
-                return f"\n{header}\n" + "\n".join(matches[:3])
-            return ""
+                return "\n".join(matches[:5])
+            return "Aucun projet ne correspond exactement, explorez notre catalogue complet sur la plateforme."
     except Exception as e:
         print(f"Error in search_projects: {e}")
-        return ""
+        return "Erreur lors de la récupération des projets."
 
 async def _build_messages(request: ChatRequest) -> List[dict]:
-    """Build the message payload for the LLM."""
+    """Build the message payload for the LLM with injected context."""
+    # 1. Fetch matched projects
     project_context = await search_projects(request.message, request.language)
     
-    system_content = SYSTEM_PROMPT.format(language=request.language)
-    if project_context:
-        system_content += f"\n\n{project_context}"
+    # 2. Format user profile
+    profile_text = "Non renseigné"
+    if request.user_profile:
+        p = request.user_profile
+        profile_text = (
+            f"Nom: {p.get('first_name')} {p.get('last_name')}\n"
+            f"Université: {p.get('university')}\n"
+            f"Domaine: {p.get('field_of_study')}\n"
+            f"Compétences: {p.get('skills', 'Non spécifiées')}"
+        )
+
+    # 3. Format conversation history
+    history_text = ""
+    for msg in request.context[-5:]:
+        role = "Étudiant" if msg.get("role") == "user" else "ARIA"
+        history_text += f"{role}: {msg.get('content')}\n"
+    if not history_text:
+        history_text = "Début de la conversation."
+
+    # 4. Final System Prompt
+    system_content = SYSTEM_PROMPT.format(
+        context_projects=project_context,
+        user_profile=profile_text,
+        conversation_history=history_text
+    )
     
     messages = [{"role": "system", "content": system_content}]
 
-    # Add user profile context
-    if request.user_profile:
-        p = request.user_profile
-        profile_text = f"Infos Étudiant: Nom={p.get('first_name')} {p.get('last_name')}, Univ={p.get('university')}, Études={p.get('field_of_study')}"
-        messages.append({"role": "system", "content": profile_text})
-
-    # Add conversation history
+    # We also keep the real history in the thread for LLM consistency
     for msg in request.context[-10:]:
         messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
 
@@ -97,26 +165,26 @@ def _generate_fallback_response(message: str, project_context: str = "") -> str:
 
     # Build context string
     ctx_msg = ""
-    if project_context:
-        ctx_msg = f"\n\n{project_context}"
+    if project_context and "Aucun" not in project_context:
+        ctx_msg = f"\n\nVoici quelques projets trouvés :\n{project_context}"
 
     if is_ar:
-        return f"مرحباً! أنا مساعد **Smart PFE**. حالياً أنا في وضع محدود (Offline)، ولكن وجدت لك هذه المشاريع في قاعدتنا:\n{ctx_msg}\n\nكيف يمكنني مساعدتك أكثر؟"
+        return f"مرحباً! أنا **ARIA**. حالياً أنا في وضع محدود، ولكن إليك بعض المشاريع المتاحة:\n{ctx_msg}\n\nكيف يمكنني مساعدتك؟"
     
     if is_en:
-        return f"Hello! I am the **Smart PFE** assistant. I'm currently in offline mode, but I found these real projects for you:\n{ctx_msg}\n\nWhat domain would you like to explore next?"
+        return f"Hello! I am **ARIA**. I'm currently in offline mode, but here are some projects I found:\n{ctx_msg}\n\nHow can I help you today?"
     
     # Default French
-    return f"Bonjour ! Je suis l'assistant **Smart PFE**. (Mode hors-ligne).\n\nVoici des projets réels correspondants à votre recherche :\n{ctx_msg}\n\nQuel domaine vous intéresse le plus (IA, Web, Mobile...) ?"
+    return f"Bonjour ! Je suis **ARIA**, l'assistante Smart PFE. Je suis actuellement en mode dégradé (hors-ligne).\n\n{ctx_msg}\n\nQuel domaine vous intéresse le plus (Web, IA, Mobile...) ?"
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_ai(request: ChatRequest):
     """Process a chat message and return an AI-generated response."""
     # Fetch context even for fallback
-    project_context = await search_projects(request.message)
+    project_context = await search_projects(request.message, request.language)
     messages = await _build_messages(request)
 
-    # Try Google Gemini first
+    # Try Google Gemini
     gemini_key = os.getenv("GEMINI_API_KEY")
     if gemini_key and gemini_key != "your-gemini-api-key-here":
         try:
