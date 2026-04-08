@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { projectsAPI, favoritesAPI } from '../services/api';
-import { FiSearch, FiFilter, FiHeart } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiHeart, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import StarRating from '../components/Rating/StarRating';
+import ReviewSection from '../components/Reviews/ReviewSection';
+import { authAPI } from '../services/api';
 import './Projects.css';
 
 export default function Projects() {
@@ -10,6 +13,8 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
+  const [expandedProject, setExpandedProject] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const domains = ['', 'IA', 'Web', 'Mobile', 'DevOps', 'Cybersecurity', 'DataScience', 'IoT', 'Cloud'];
   const domainColors = {
@@ -35,6 +40,8 @@ export default function Projects() {
 
   useEffect(() => {
     fetchProjects();
+    // Get current user to check if they can review
+    authAPI.getProfile().then(res => setCurrentUser(res.data)).catch(() => {});
   }, [fetchProjects]);
 
   const handleSearch = (e) => {
@@ -110,6 +117,10 @@ export default function Projects() {
                 <FiHeart />
               </button>
             </div>
+            <div className="project-rating-summary">
+              <StarRating rating={project.average_rating} readOnly />
+              <span className="review-count">({project.review_count})</span>
+            </div>
             <h3>{project.title}</h3>
             <p className="project-desc">{project.description?.slice(0, 150)}...</p>
             <div className="project-meta">
@@ -119,6 +130,28 @@ export default function Projects() {
               <span className="badge badge-info">{project.duration}</span>
             </div>
             <div className="project-tech">{project.technologies}</div>
+            <button 
+              className="btn-details"
+              onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
+            >
+              {expandedProject === project.id ? (
+                <><FiChevronUp /> {t('common.hide_reviews') || 'Masquer les avis'}</>
+              ) : (
+                <><FiChevronDown /> {t('common.view_reviews') || 'Voir les avis'}</>
+              )}
+            </button>
+
+            {expandedProject === project.id && (
+              <ReviewSection 
+                projectId={project.id} 
+                canReview={
+                  currentUser?.role === 'student' && 
+                  project.status === 'completed' && 
+                  project.assigned_to === currentUser?.id
+                }
+                onReviewAdded={fetchProjects}
+              />
+            )}
           </div>
         ))}
       </div>

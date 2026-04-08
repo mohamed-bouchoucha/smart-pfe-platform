@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory
+from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory, Review
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -31,6 +31,9 @@ class ProjectSerializer(serializers.ModelSerializer):
     supervisor_name = serializers.CharField(source='supervisor.get_full_name', read_only=True, default=None)
     is_favorited = serializers.SerializerMethodField()
     allowed_transitions = serializers.SerializerMethodField()
+    average_rating = serializers.ReadOnlyField()
+    review_count = serializers.ReadOnlyField()
+    assigned_to_name = serializers.CharField(source='assigned_to.get_full_name', read_only=True, default=None)
 
     class Meta:
         model = Project
@@ -39,7 +42,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             'difficulty', 'duration', 'status', 'company_name',
             'skills', 'created_by', 'created_by_name',
             'supervisor', 'supervisor_name',
+            'assigned_to', 'assigned_to_name',
             'is_favorited', 'allowed_transitions',
+            'average_rating', 'review_count',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
@@ -112,3 +117,16 @@ class FavoriteSerializer(serializers.ModelSerializer):
         ).exists():
             raise serializers.ValidationError("Projet déjà dans vos favoris.")
         return value
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'project', 'user', 'user_name', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

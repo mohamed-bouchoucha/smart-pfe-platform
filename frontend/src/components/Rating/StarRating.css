@@ -1,0 +1,24 @@
+.star-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.star-icon {
+  font-size: 1.25rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.star-icon.filled {
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.star-icon.read-only {
+  cursor: default;
+}
+
+.star-icon:hover:not(.read-only) {
+  transform: scale(1.2);
+}

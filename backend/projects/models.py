@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Avg
 
 
 class Skill(models.Model):
@@ -88,6 +90,13 @@ class Project(models.Model):
         related_name='supervised_projects',
         limit_choices_to={'role': 'supervisor'},
     )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='assigned_projects',
+        limit_choices_to={'role': 'student'},
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -119,6 +128,17 @@ class Project(models.Model):
             changed_by=changed_by,
         )
         return self
+
+    @property
+    def average_rating(self):
+        """Calculate average rating for this project."""
+        avg = self.reviews.aggregate(Avg('rating'))['rating__avg']
+        return round(avg, 1) if avg else 0
+
+    @property
+    def review_count(self):
+        """Get the number of reviews."""
+        return self.reviews.count()
 
 
 class StatusHistory(models.Model):
@@ -170,3 +190,24 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user.username} ❤ {self.project.title}"
+
+
+class Review(models.Model):
+    """Rating and comment left by a student after completing a project."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='project_reviews')
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Project rating from 1 to 5 stars"
+    )
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'project_reviews'
+        unique_together = ['project', 'user']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review by {self.user.username} for {self.project.title} ({self.rating}★)"

@@ -77,6 +77,12 @@ export const favoritesAPI = {
   remove: (id) => api.delete(`/projects/favorites/${id}/`),
 };
 
+// ===================== REVIEWS =====================
+export const reviewsAPI = {
+  list: (projectId) => api.get('/projects/reviews/', { params: { project_id: projectId } }),
+  create: (data) => api.post('/projects/reviews/', data),
+};
+
 // ===================== CONVERSATIONS =====================
 export const conversationsAPI = {
   list: () => api.get('/conversations/'),

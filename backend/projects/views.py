@@ -6,12 +6,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 
 from accounts.permissions import IsAdminOrSupervisor, IsAdminOrSupervisorOrReadOnly
-from .models import Project, Favorite, Skill, StatusHistory
+from .models import Project, Favorite, Skill, StatusHistory, Review
 from .filters import ProjectFilter
 from .serializers import (
     ProjectSerializer, ProjectCreateSerializer,
     FavoriteSerializer, SkillSerializer,
     ProjectTransitionSerializer, StatusHistorySerializer,
+    ReviewSerializer,
 )
 
 
@@ -153,3 +154,37 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SkillSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = Skill.objects.all()
+
+
+@extend_schema_view(
+    list=extend_schema(description="List reviews for a specific project."),
+    create=extend_schema(description="Create a review (Student only).")
+)
+class ReviewViewSet(viewsets.ModelViewSet):
+    """ViewSet for Project Reviews."""
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            return Review.objects.filter(project_id=project_id)
+        return Review.objects.all()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        project = serializer.validated_data['project']
+
+        # Validation: Only students
+        if not user.is_student:
+            raise ValidationError("Seuls les étudiants peuvent laisser des avis.")
+
+        # Validation: Project must be completed
+        if project.status != 'completed':
+            raise ValidationError("Vous ne pouvez noter que les projets terminés.")
+
+        # Validation: User must be assigned to the project
+        if project.assigned_to != user:
+            raise ValidationError("Vous ne pouvez noter que les projets qui vous ont été assignés.")
+
+        serializer.save(user=user)
