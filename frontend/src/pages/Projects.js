@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { projectsAPI, favoritesAPI } from '../services/api';
-import { FiSearch, FiFilter, FiHeart, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import StarRating from '../components/Rating/StarRating';
 import ReviewSection from '../components/Reviews/ReviewSection';
+import SkillGapAnalyzer from '../components/Skills/SkillGapAnalyzer';
 import { authAPI } from '../services/api';
+import { FiSearch, FiFilter, FiHeart, FiChevronDown, FiChevronUp, FiBarChart2, FiMessageCircle } from 'react-icons/fi';
 import './Projects.css';
 
 export default function Projects() {
@@ -14,6 +15,7 @@ export default function Projects() {
   const [search, setSearch] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [expandedProject, setExpandedProject] = useState(null);
+  const [activeTab, setActiveTab] = useState('reviews'); // 'reviews' or 'skills'
   const [currentUser, setCurrentUser] = useState(null);
 
   const domains = ['', 'IA', 'Web', 'Mobile', 'DevOps', 'Cybersecurity', 'DataScience', 'IoT', 'Cloud'];
@@ -130,27 +132,47 @@ export default function Projects() {
               <span className="badge badge-info">{project.duration}</span>
             </div>
             <div className="project-tech">{project.technologies}</div>
-            <button 
-              className="btn-details"
-              onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
-            >
-              {expandedProject === project.id ? (
-                <><FiChevronUp /> {t('common.hide_reviews') || 'Masquer les avis'}</>
-              ) : (
-                <><FiChevronDown /> {t('common.view_reviews') || 'Voir les avis'}</>
-              )}
-            </button>
+            <div className="project-actions">
+              <button 
+                className={`btn-details ${expandedProject === project.id ? 'active' : ''}`}
+                onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
+              >
+                {expandedProject === project.id ? <FiChevronUp /> : <FiChevronDown />}
+                {expandedProject === project.id ? t('common.hide_details') || 'Masquer' : t('common.view_details') || 'Détails'}
+              </button>
+            </div>
 
             {expandedProject === project.id && (
-              <ReviewSection 
-                projectId={project.id} 
-                canReview={
-                  currentUser?.role === 'student' && 
-                  project.status === 'completed' && 
-                  project.assigned_to === currentUser?.id
-                }
-                onReviewAdded={fetchProjects}
-              />
+              <div className="project-expanded-content">
+                <div className="tab-switcher">
+                  <button 
+                    className={activeTab === 'reviews' ? 'active' : ''} 
+                    onClick={() => setActiveTab('reviews')}
+                  >
+                    <FiMessageCircle /> {t('common.reviews') || 'Avis'}
+                  </button>
+                  <button 
+                    className={activeTab === 'skills' ? 'active' : ''} 
+                    onClick={() => setActiveTab('skills')}
+                  >
+                    <FiBarChart2 /> {t('common.skill_gap') || 'Skill Gap'}
+                  </button>
+                </div>
+
+                {activeTab === 'reviews' ? (
+                  <ReviewSection 
+                    projectId={project.id} 
+                    canReview={
+                      currentUser?.role === 'student' && 
+                      project.status === 'completed' && 
+                      project.assigned_to === currentUser?.id
+                    }
+                    onReviewAdded={fetchProjects}
+                  />
+                ) : (
+                  <SkillGapAnalyzer projectId={project.id} />
+                )}
+              </div>
             )}
           </div>
         ))}

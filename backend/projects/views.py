@@ -129,6 +129,33 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.save(update_fields=['supervisor', 'updated_at'])
         return Response(self.get_serializer(project).data)
 
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Skill gap data for radar chart")},
+        description="Calculate skill gap between current user and the project."
+    )
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def skill_gap(self, request, pk=None):
+        project = self.get_object()
+        user = request.user
+        
+        # Get project skills (names)
+        project_skills = project.skills.all()
+        labels = [s.name for s in project_skills]
+        
+        # Get user skills (names)
+        user_skills = set(user.skills.values_list('name', flat=True))
+        
+        user_scores = [1 if s.name in user_skills else 0 for s in project_skills]
+        required_scores = [1 for _ in project_skills]
+        missing_skills = [s.name for s in project_skills if s.name not in user_skills]
+        
+        return Response({
+            'labels': labels,
+            'user_scores': user_scores,
+            'required_scores': required_scores,
+            'missing_skills': missing_skills,
+        })
+
 
 @extend_schema_view(
     list=extend_schema(description="List favorites for the current user."),

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL || 'http://localhost:8001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -68,6 +69,7 @@ export const projectsAPI = {
   validate: (id, status) => api.patch(`/projects/${id}/transition/`, { status }),
   assign: (id, supervisorId) => api.patch(`/projects/${id}/assign/`, { supervisor_id: supervisorId }),
   getSkills: () => api.get('/projects/skills/'),
+  getSkillGap: (id) => api.get(`/projects/${id}/skill_gap/`),
 };
 
 // ===================== FAVORITES =====================
@@ -81,6 +83,14 @@ export const favoritesAPI = {
 export const reviewsAPI = {
   list: (projectId) => api.get('/projects/reviews/', { params: { project_id: projectId } }),
   create: (data) => api.post('/projects/reviews/', data),
+};
+
+// ===================== SKILLS AI =====================
+export const skillsAPI = {
+  recommendResources: (missingSkills) => axios.post(`${AI_SERVICE_URL}/skills/recommend-resources`, { 
+    missing_skills: missingSkills,
+    language: localStorage.getItem('i18nextLng') || 'fr'
+  }),
 };
 
 // ===================== CONVERSATIONS =====================
