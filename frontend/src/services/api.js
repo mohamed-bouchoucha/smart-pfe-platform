@@ -85,6 +85,14 @@ export const reviewsAPI = {
   create: (data) => api.post('/projects/reviews/', data),
 };
 
+// ===================== APPLICATIONS =====================
+export const applicationsAPI = {
+  list: () => api.get('/projects/applications/'),
+  create: (projectId) => api.post('/projects/applications/', { project: projectId }),
+  updateStatus: (id, status) => api.patch(`/projects/applications/${id}/`, { status }),
+  delete: (id) => api.delete(`/projects/applications/${id}/`),
+};
+
 // ===================== SKILLS AI =====================
 export const skillsAPI = {
   recommendResources: (missingSkills) => axios.post(`${AI_SERVICE_URL}/skills/recommend-resources`, { 

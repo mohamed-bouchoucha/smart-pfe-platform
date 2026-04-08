@@ -6,13 +6,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 
 from accounts.permissions import IsAdminOrSupervisor, IsAdminOrSupervisorOrReadOnly
-from .models import Project, Favorite, Skill, StatusHistory, Review
+from .models import Project, Favorite, Skill, StatusHistory, Review, Application
 from .filters import ProjectFilter
 from .serializers import (
     ProjectSerializer, ProjectCreateSerializer,
     FavoriteSerializer, SkillSerializer,
     ProjectTransitionSerializer, StatusHistorySerializer,
-    ReviewSerializer,
+    ReviewSerializer, ApplicationSerializer,
 )
 
 
@@ -215,3 +215,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
             raise ValidationError("Vous ne pouvez noter que les projets qui vous ont été assignés.")
 
         serializer.save(user=user)
+
+
+@extend_schema_view(
+    list=extend_schema(description="List applications for the current student."),
+    create=extend_schema(description="Apply for a project."),
+    partial_update=extend_schema(description="Update application status.")
+)
+class ApplicationViewSet(viewsets.ModelViewSet):
+    """ViewSet for Project Applications."""
+    serializer_class = ApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Application.objects.none()
+        
+        if user.is_student:
+            return Application.objects.filter(user=user).select_related('project')
+        # Admins and Supervisors can see all applications
+        return Application.objects.all().select_related('project', 'user')
+
+    def perform_create(self, serializer):
+        # Additional validation: check if already applied
+        project = serializer.validated_data['project']
+        if Application.objects.filter(user=self.request.user, project=project).exists():
+            raise ValidationError("Vous avez déjà une candidature en cours pour ce projet.")
+        serializer.save(user=self.request.user)

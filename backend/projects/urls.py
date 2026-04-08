@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'skills', views.SkillViewSet, basename='skill')
 router.register(r'favorites', views.FavoriteViewSet, basename='favorite')
 router.register(r'reviews', views.ReviewViewSet, basename='review')
+router.register(r'applications', views.ApplicationViewSet, basename='application')
 router.register(r'', views.ProjectViewSet, basename='project')
 
 urlpatterns = [

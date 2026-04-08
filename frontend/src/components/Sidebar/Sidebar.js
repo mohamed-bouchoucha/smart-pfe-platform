@@ -6,7 +6,7 @@ import { notificationsAPI } from '../../services/api';
 import {
   FiHome, FiMessageSquare, FiFolder, FiUpload,
   FiHeart, FiLogOut, FiUsers, FiBarChart2, FiCpu,
-  FiGlobe
+  FiGlobe, FiColumns
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -48,6 +48,7 @@ export default function Sidebar() {
     { to: '/projects', icon: <FiFolder />, label: t('common.projects') || t('common.catalog') },
     { to: '/upload', icon: <FiUpload />, label: t('common.documents') || 'Documents' },
     { to: '/favorites', icon: <FiHeart />, label: t('common.favorites') },
+    { to: '/applications', icon: <FiColumns />, label: t('common.tracker') || 'Tracker' },
   ];
 
   const adminLinks = [

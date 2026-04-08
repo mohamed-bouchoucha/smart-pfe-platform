@@ -211,3 +211,42 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.user.username} for {self.project.title} ({self.rating}★)"
+
+
+class Application(models.Model):
+    """Student application for a PFE project."""
+
+    class Status(models.TextChoices):
+        INTERESTED = 'interested', 'Intéressé'
+        APPLIED = 'applied', 'Postulé'
+        INTERVIEW = 'interview', 'Entretien'
+        ACCEPTED = 'accepted', 'Accepté'
+        REJECTED = 'rejected', 'Refusé'
+        COMPLETED = 'completed', 'Terminé'
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='applications',
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='applications',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.INTERESTED,
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'applications'
+        unique_together = ['user', 'project']
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.project.title} ({self.status})"

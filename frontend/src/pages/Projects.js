@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { projectsAPI, favoritesAPI } from '../services/api';
+import { projectsAPI, favoritesAPI, applicationsAPI } from '../services/api';
 import StarRating from '../components/Rating/StarRating';
 import ReviewSection from '../components/Reviews/ReviewSection';
 import SkillGapAnalyzer from '../components/Skills/SkillGapAnalyzer';
@@ -45,6 +45,15 @@ export default function Projects() {
     // Get current user to check if they can review
     authAPI.getProfile().then(res => setCurrentUser(res.data)).catch(() => {});
   }, [fetchProjects]);
+
+  const handleApply = async (projectId) => {
+    try {
+      await applicationsAPI.create(projectId);
+      fetchProjects();
+    } catch (err) {
+      console.error('Apply error:', err);
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -140,6 +149,18 @@ export default function Projects() {
                 {expandedProject === project.id ? <FiChevronUp /> : <FiChevronDown />}
                 {expandedProject === project.id ? t('common.hide_details') || 'Masquer' : t('common.view_details') || 'Détails'}
               </button>
+              
+              {currentUser?.role === 'student' && (
+                <button 
+                  className={`btn-apply ${project.application_status ? 'applied' : ''}`}
+                  onClick={() => !project.application_status && handleApply(project.id)}
+                  disabled={project.application_status}
+                >
+                  {project.application_status 
+                    ? t(`common.status_${project.application_status}`) || 'Postulé'
+                    : t('common.apply') || 'Postuler'}
+                </button>
+              )}
             </div>
 
             {expandedProject === project.id && (

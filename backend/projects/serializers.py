@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory, Review
+from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory, Review, Application
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -34,6 +34,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     average_rating = serializers.ReadOnlyField()
     review_count = serializers.ReadOnlyField()
     assigned_to_name = serializers.CharField(source='assigned_to.get_full_name', read_only=True, default=None)
+    application_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -45,6 +46,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'assigned_to', 'assigned_to_name',
             'is_favorited', 'allowed_transitions',
             'average_rating', 'review_count',
+            'application_status',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
@@ -68,6 +70,13 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_allowed_transitions(self, obj):
         return Project.VALID_TRANSITIONS.get(obj.status, [])
+
+    def get_application_status(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            app = Application.objects.filter(user=request.user, project=obj).first()
+            return app.status if app else None
+        return None
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
@@ -126,6 +135,23 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'project', 'user', 'user_name', 'rating', 'comment', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    project_details = ProjectSerializer(source='project', read_only=True)
+    student_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Application
+        fields = [
+            'id', 'project', 'project_details', 'user', 'student_name', 
+            'status', 'notes', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
