@@ -7,13 +7,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 
 from accounts.permissions import IsAdminOrSupervisor, IsAdminOrSupervisorOrReadOnly
-from .models import Project, Favorite, Skill, StatusHistory, Review, Application
+from .models import Project, Favorite, Skill, StatusHistory, Review, Application, Event
 from .filters import ProjectFilter
 from .serializers import (
     ProjectSerializer, ProjectCreateSerializer,
     FavoriteSerializer, SkillSerializer,
     ProjectTransitionSerializer, StatusHistorySerializer,
-    ReviewSerializer, ApplicationSerializer,
+    ReviewSerializer, ApplicationSerializer, EventSerializer,
 )
 
 
@@ -275,3 +275,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if Application.objects.filter(user=self.request.user, project=project).exists():
             raise ValidationError("Vous avez déjà une candidature en cours pour ce projet.")
         serializer.save(user=self.request.user)
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    """ViewSet for Calendar Events."""
+    serializer_class = EventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Event.objects.none()
+
+        if user.role in ('admin', 'supervisor'):
+            return Event.objects.all().select_related('project', 'user')
+
+        # Students see their own events + global milestones
+        from django.db.models import Q
+        return Event.objects.filter(
+            Q(user=user) | Q(is_global=True)
+        ).select_related('project', 'user')

@@ -6,7 +6,7 @@ import { notificationsAPI } from '../../services/api';
 import {
   FiHome, FiMessageSquare, FiFolder, FiUpload,
   FiHeart, FiLogOut, FiUsers, FiBarChart2, FiCpu,
-  FiGlobe, FiColumns
+  FiGlobe, FiColumns, FiCalendar
 } from 'react-icons/fi';
 import './Sidebar.css';
 

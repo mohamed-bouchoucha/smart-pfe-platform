@@ -250,3 +250,48 @@ class Application(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.title} ({self.status})"
+
+
+class Event(models.Model):
+    """Calendar event: deadline, interview, or milestone."""
+
+    class EventType(models.TextChoices):
+        DEADLINE = 'deadline', 'Date Limite'
+        INTERVIEW = 'interview', 'Entretien'
+        MILESTONE = 'milestone', 'Jalon'
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    event_type = models.CharField(
+        max_length=20,
+        choices=EventType.choices,
+        default=EventType.DEADLINE,
+    )
+    date = models.DateTimeField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        help_text="Owner of a personal event. Null for global milestones.",
+    )
+    project = models.ForeignKey(
+        'Project',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+    )
+    is_global = models.BooleanField(
+        default=False,
+        help_text="If True, visible to all students (admin broadcasts).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'events'
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.title} ({self.event_type}) - {self.date:%Y-%m-%d}"

@@ -5,6 +5,7 @@ import { projectsAPI, favoritesAPI, conversationsAPI, recommendationsAPI } from 
 import { FiFolder, FiHeart, FiMessageSquare, FiTrendingUp, FiArrowRight, FiRefreshCw, FiStar } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import EventCalendar from '../components/Calendar/EventCalendar';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -108,6 +109,16 @@ export default function Dashboard() {
             <h3>{recommendedProjects.length > 0 ? (t('dashboard.optimal') || 'Optimal') : '--'}</h3>
             <p>{t('dashboard.reco_status') || 'Statut Recommandation'}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Calendar Widget */}
+      <div className="dashboard-section">
+        <div className="section-header">
+          <h2>{t('common.calendar') || 'Calendrier'}</h2>
+        </div>
+        <div className="glass-card" style={{ padding: '1.5rem' }}>
+          <EventCalendar />
         </div>
       </div>
 

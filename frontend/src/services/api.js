@@ -94,6 +94,14 @@ export const applicationsAPI = {
   delete: (id) => api.delete(`/projects/applications/${id}/`),
 };
 
+// ===================== EVENTS =====================
+export const eventsAPI = {
+  list: () => api.get('/projects/events/'),
+  create: (data) => api.post('/projects/events/', data),
+  update: (id, data) => api.patch(`/projects/events/${id}/`, data),
+  delete: (id) => api.delete(`/projects/events/${id}/`),
+};
+
 // ===================== SKILLS AI =====================
 export const skillsAPI = {
   recommendResources: (missingSkills) => axios.post(`${AI_SERVICE_URL}/skills/recommend-resources`, { 

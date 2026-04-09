@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory, Review, Application
+from .models import Project, Skill, Favorite, ProjectSkill, StatusHistory, Review, Application, Event
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -155,4 +155,28 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class EventSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source='project.title', read_only=True, default=None)
+    created_by_name = serializers.CharField(source='user.get_full_name', read_only=True, default=None)
+
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'title', 'description', 'event_type', 'date',
+            'user', 'project', 'project_title', 'is_global',
+            'created_by_name', 'created_at',
+        ]
+        read_only_fields = ['id', 'user', 'created_at']
+
+    def create(self, validated_data):
+        request = self.context['request']
+        # If admin sets is_global, user stays null
+        if validated_data.get('is_global') and request.user.is_admin:
+            validated_data['user'] = None
+        else:
+            validated_data['user'] = request.user
+            validated_data['is_global'] = False
         return super().create(validated_data)
