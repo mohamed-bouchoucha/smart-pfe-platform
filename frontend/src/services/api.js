@@ -70,6 +70,7 @@ export const projectsAPI = {
   assign: (id, supervisorId) => api.patch(`/projects/${id}/assign/`, { supervisor_id: supervisorId }),
   getSkills: () => api.get('/projects/skills/'),
   getSkillGap: (id) => api.get(`/projects/${id}/skill_gap/`),
+  getStatistics: () => api.get('/projects/statistics/'),
 };
 
 // ===================== FAVORITES =====================

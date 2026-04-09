@@ -1,3 +1,4 @@
+from django.db.models import Count
 from rest_framework import permissions, status, filters, viewsets, mixins
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -154,6 +155,37 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'user_scores': user_scores,
             'required_scores': required_scores,
             'missing_skills': missing_skills,
+        })
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Aggregated platform statistics")},
+        description="Get platform statistics (admin/supervisor only)."
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrSupervisor])
+    def statistics(self, request):
+        # Projects by Domain
+        projects_by_domain = Project.objects.values('domain').annotate(count=Count('id'))
+        
+        # Projects by Status
+        projects_by_status = Project.objects.values('status').annotate(count=Count('id'))
+        
+        # Applications by Status
+        applications_by_status = Application.objects.values('status').annotate(count=Count('id'))
+        
+        # Difficulty Distribution
+        difficulty_dist = Project.objects.values('difficulty').annotate(count=Count('id'))
+        
+        # Supervisors Workload
+        supervisors_workload = Project.objects.exclude(supervisor=None).values(
+            'supervisor__first_name', 'supervisor__last_name'
+        ).annotate(count=Count('id'))
+
+        return Response({
+            'projects_by_domain': list(projects_by_domain),
+            'projects_by_status': list(projects_by_status),
+            'applications_by_status': list(applications_by_status),
+            'difficulty_distribution': list(difficulty_dist),
+            'supervisors_workload': list(supervisors_workload),
         })
 
 

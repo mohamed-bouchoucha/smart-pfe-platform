@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminAPI, authAPI, projectsAPI } from '../services/api';
-import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX, FiUserPlus, FiShield, FiUser } from 'react-icons/fi';
+import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX, FiUserPlus, FiShield, FiUser, FiPieChart, FiBarChart } from 'react-icons/fi';
+import { Doughnut, Bar, PolarArea, Pie } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  RadialLinearScale,
+} from 'chart.js';
 import { toast } from 'react-hot-toast';
 import './Admin.css';
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  RadialLinearScale
+);
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
@@ -13,6 +36,7 @@ export default function AdminDashboard() {
   const [supervisors, setSupervisors] = useState([]);
   const [activeTab, setActiveTab] = useState('stats');
   const [loading, setLoading] = useState(false);
+  const [advStats, setAdvStats] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -21,17 +45,19 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, projectsRes, supervisorsRes] = await Promise.allSettled([
+      const [statsRes, usersRes, projectsRes, supervisorsRes, advStatsRes] = await Promise.allSettled([
         adminAPI.getStats(),
         authAPI.getUsers(),
         projectsAPI.list(),
         authAPI.getSupervisors(),
+        projectsAPI.getStatistics(),
       ]);
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
       if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data.results || usersRes.value.data || []);
       if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data.results || projectsRes.value.data || []);
       if (supervisorsRes.status === 'fulfilled') setSupervisors(supervisorsRes.value.data.results || supervisorsRes.value.data || []);
+      if (advStatsRes.status === 'fulfilled') setAdvStats(advStatsRes.value.data);
     } catch (err) {
       console.error('Admin fetch error:', err);
       toast.error(t('admin.fetch_error') || 'Erreur lors du chargement des données.');
@@ -140,21 +166,95 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="glass-card domain-stats-card">
-            <h3>{t('admin.projects_by_domain')}</h3>
-            <div className="domain-stats">
-              {stats.projects?.by_domain && Object.entries(stats.projects.by_domain).map(([domain, count]) => (
-                <div key={domain} className="domain-bar">
-                  <span className="domain-label">{domain}</span>
-                  <div className="domain-bar-bg">
-                    <div
-                      className="domain-bar-fill"
-                      style={{ width: `${Math.min((count / (stats.projects?.total || 1)) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  <span className="domain-count">{count}</span>
-                </div>
-              ))}
+          <div className="charts-grid mt-4">
+            {/* Project Domains */}
+            <div className="glass-card chart-card">
+              <h3><FiPieChart /> {t('admin.projects_by_domain')}</h3>
+              <div className="chart-container">
+                <Doughnut 
+                  data={{
+                    labels: advStats?.projects_by_domain.map(d => d.domain) || [],
+                    datasets: [{
+                      data: advStats?.projects_by_domain.map(d => d.count) || [],
+                      backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                      borderWidth: 0,
+                    }]
+                  }}
+                  options={{ plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } } }}
+                />
+              </div>
+            </div>
+
+            {/* Application Stages */}
+            <div className="glass-card chart-card">
+              <h3><FiActivity /> {t('admin.application_pipeline') || 'Pipeline des Candidatures'}</h3>
+              <div className="chart-container">
+                <Bar 
+                  data={{
+                    labels: advStats?.applications_by_status.map(s => s.status) || [],
+                    datasets: [{
+                      label: t('admin.count') || 'Nombre',
+                      data: advStats?.applications_by_status.map(s => s.count) || [],
+                      backgroundColor: '#6366f1',
+                      borderRadius: 6,
+                    }]
+                  }}
+                  options={{ 
+                    scales: { 
+                      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                      x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                    },
+                    plugins: { legend: { display: false } }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Difficulty Distribution */}
+            <div className="glass-card chart-card">
+              <h3><FiActivity /> {t('admin.difficulty_distribution') || 'Répartition par Difficulté'}</h3>
+              <div className="chart-container">
+                <PolarArea 
+                  data={{
+                    labels: advStats?.difficulty_distribution.map(d => d.difficulty) || [],
+                    datasets: [{
+                      data: advStats?.difficulty_distribution.map(d => d.count) || [],
+                      backgroundColor: ['rgba(16, 185, 129, 0.5)', 'rgba(245, 158, 11, 0.5)', 'rgba(239, 68, 68, 0.5)'],
+                      borderColor: '#111827',
+                    }]
+                  }}
+                  options={{ 
+                    scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } } 
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Supervisor Workload */}
+            <div className="glass-card chart-card">
+              <h3><FiUsers /> {t('admin.supervisor_workload') || 'Charge de Travail Encadrants'}</h3>
+              <div className="chart-container">
+                <Bar 
+                  data={{
+                    labels: advStats?.supervisors_workload.map(s => `M. ${s.supervisor__last_name}`) || [],
+                    datasets: [{
+                      label: t('admin.projects') || 'Projets',
+                      data: advStats?.supervisors_workload.map(s => s.count) || [],
+                      backgroundColor: '#06b6d4',
+                      borderRadius: 6,
+                    }]
+                  }}
+                  options={{ 
+                    indexAxis: 'y',
+                    scales: { 
+                      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                      y: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                    },
+                    plugins: { legend: { display: false } }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
