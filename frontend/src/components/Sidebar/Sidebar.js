@@ -18,9 +18,10 @@ export default function Sidebar() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
-  const wsUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api')
+  const token = localStorage.getItem('access_token');
+  const wsUrl = `${(process.env.REACT_APP_API_URL || 'http://localhost:8000/api')
     .replace('http', 'ws')
-    .replace('/api', '/ws/notifications/');
+    .replace('/api', '/ws/notifications/')}?token=${token}`;
 
   useWebSockets(wsUrl, (data) => {
     setUnreadCount(prev => prev + 1);

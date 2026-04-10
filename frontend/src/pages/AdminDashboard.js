@@ -441,8 +441,11 @@ export default function AdminDashboard() {
                                   title="Étape suivante"
                                   onClick={() => {
                                     const nextIdx = APP_STAGES.findIndex(s => s.id === stage.id) + 1;
-                                    handleApplicationStatus(app.id, APP_STAGES[nextIdx].id);
+                                    if (APP_STAGES[nextIdx]) {
+                                      handleApplicationStatus(app.id, APP_STAGES[nextIdx].id);
+                                    }
                                   }}
+                                  disabled={stage.id === 'accepted' || stage.id === 'rejected'}
                                 >
                                   <FiChevronRight />
                                 </button>
