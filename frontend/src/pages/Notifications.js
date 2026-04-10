@@ -38,13 +38,16 @@ export default function Notifications() {
   };
 
   const handleDelete = async (id) => {
-    // Note: Assuming there is a delete endpoint or just filter locally if not implemented in backend
     try {
-      // await notificationsAPI.delete(id);
+      // Logic for backend deletion if endpoint exists
+      if (notificationsAPI.delete) {
+        await notificationsAPI.delete(id);
+      }
       setNotifications(prev => prev.filter(n => n.id !== id));
-      toast.success(t('common.deleted') || 'Supprimé');
+      toast.success(t('common.deleted') || 'Notification supprimée');
     } catch (err) {
-       toast.error('Erreur');
+      console.error('Delete notification error:', err);
+      toast.error(t('notifications.delete_error') || 'Erreur lors de la suppression.');
     }
   };
 

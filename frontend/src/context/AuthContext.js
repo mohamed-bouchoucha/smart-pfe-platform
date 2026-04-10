@@ -16,10 +16,13 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authAPI.getProfile();
       setUser(data);
-    } catch {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      setUser(null);
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        setUser(null);
+      }
+      console.error('Profile fetch failed:', err);
     } finally {
       setLoading(false);
     }

@@ -104,7 +104,7 @@ export const eventsAPI = {
 
 // ===================== SKILLS AI =====================
 export const skillsAPI = {
-  recommendResources: (missingSkills) => axios.post(`${AI_SERVICE_URL}/skills/recommend-resources`, { 
+  recommendResources: (missingSkills) => api.post(`${AI_SERVICE_URL.replace(API_BASE_URL, '')}/skills/recommend-resources`, { 
     missing_skills: missingSkills,
     language: localStorage.getItem('i18nextLng') || 'fr'
   }),

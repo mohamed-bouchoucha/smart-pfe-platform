@@ -47,11 +47,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Project.objects.none()
             
         if user.role in ('admin', 'supervisor'):
-            return Project.objects.select_related('created_by', 'supervisor').all()
+            return Project.objects.select_related('created_by', 'supervisor').prefetch_related('skills').all()
         # Students see approved + in_progress + completed projects, and their own
-        return Project.objects.select_related('created_by', 'supervisor').filter(
+        return (Project.objects.select_related('created_by', 'supervisor').prefetch_related('skills').filter(
             status__in=['approved', 'in_progress', 'completed']
-        ) | Project.objects.filter(created_by=user)
+        ) | Project.objects.filter(created_by=user)).distinct()
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
