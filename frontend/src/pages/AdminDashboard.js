@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { adminAPI, authAPI, projectsAPI } from '../services/api';
-import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX, FiUserPlus, FiShield, FiUser, FiPieChart, FiBarChart } from 'react-icons/fi';
+import { adminAPI, authAPI, projectsAPI, applicationsAPI } from '../services/api';
+import { FiUsers, FiFolder, FiMessageSquare, FiActivity, FiCheck, FiX, FiUserPlus, FiShield, FiUser, FiPieChart, FiBarChart, FiColumns, FiClock, FiCheckCircle, FiXCircle, FiChevronRight } from 'react-icons/fi';
 import { Doughnut, Bar, PolarArea, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -37,6 +37,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('stats');
   const [loading, setLoading] = useState(false);
   const [advStats, setAdvStats] = useState(null);
+  const [applications, setApplications] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -45,12 +46,13 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, projectsRes, supervisorsRes, advStatsRes] = await Promise.allSettled([
+      const [statsRes, usersRes, projectsRes, supervisorsRes, advStatsRes, appsRes] = await Promise.allSettled([
         adminAPI.getStats(),
         authAPI.getUsers(),
         projectsAPI.list(),
         authAPI.getSupervisors(),
         projectsAPI.getStatistics(),
+        applicationsAPI.list(),
       ]);
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
@@ -58,6 +60,7 @@ export default function AdminDashboard() {
       if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data.results || projectsRes.value.data || []);
       if (supervisorsRes.status === 'fulfilled') setSupervisors(supervisorsRes.value.data.results || supervisorsRes.value.data || []);
       if (advStatsRes.status === 'fulfilled') setAdvStats(advStatsRes.value.data);
+      if (appsRes.status === 'fulfilled') setApplications(appsRes.value.data.results || appsRes.value.data || []);
     } catch (err) {
       console.error('Admin fetch error:', err);
       toast.error(t('admin.fetch_error') || 'Erreur lors du chargement des données.');
@@ -104,290 +107,366 @@ export default function AdminDashboard() {
     } catch (err) {
       toast.error(t('admin.role_error') || 'Erreur lors du changement de rôle.');
     }
-  };
+    const handleApplicationStatus = async (id, status) => {
+      try {
+        await applicationsAPI.updateStatus(id, status);
+        toast.success(t('admin.app_status_updated') || 'Statut de candidature mis à jour.');
+        fetchData();
+      } catch (err) {
+        toast.error(t('admin.status_error') || 'Erreur.');
+      }
+    };
 
-  return (
-    <div className="admin-page animate-fade-in">
-      <div className="page-header">
-        <h1>{t('common.administration')}</h1>
-        <p>{t('admin.subtitle') || 'Gérez la plateforme Smart PFE'}</p>
-      </div>
+    const APP_STAGES = [
+      { id: 'interested', label: t('common.status_interested') || 'Intéressé', color: '#9ca3af' },
+      { id: 'applied', label: t('common.status_applied') || 'Postulé', color: '#3b82f6' },
+      { id: 'interview', label: t('common.status_interview') || 'Entretien', color: '#f59e0b' },
+      { id: 'accepted', label: t('common.status_accepted') || 'Accepté', color: '#10b981' },
+      { id: 'rejected', label: t('common.status_rejected') || 'Refusé', color: '#ef4444' },
+    ];
 
-      {/* Tabs */}
-      <div className="admin-tabs">
-        {[
-          { key: 'stats', label: t('admin.statistics'), icon: <FiActivity /> },
-          { key: 'users', label: t('admin.users'), icon: <FiUsers /> },
-          { key: 'projects', label: t('admin.projects'), icon: <FiFolder /> },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {loading && <div className="loading-overlay">{t('common.loading')}</div>}
-
-      {/* Stats Tab */}
-      {activeTab === 'stats' && stats && (
-        <div className="stats-content">
-          <div className="grid grid-4">
-            <div className="glass-card stat-card">
-              <div className="stat-icon purple"><FiUsers /></div>
-              <div className="stat-info">
-                <h3>{stats.users?.total || 0}</h3>
-                <p>{t('admin.users')}</p>
-              </div>
-            </div>
-            <div className="glass-card stat-card">
-              <div className="stat-icon cyan"><FiFolder /></div>
-              <div className="stat-info">
-                <h3>{stats.projects?.total || 0}</h3>
-                <p>{t('admin.projects')}</p>
-              </div>
-            </div>
-            <div className="glass-card stat-card">
-              <div className="stat-icon green"><FiMessageSquare /></div>
-              <div className="stat-info">
-                <h3>{stats.conversations?.total || 0}</h3>
-                <p>{t('common.conversations')}</p>
-              </div>
-            </div>
-            <div className="glass-card stat-card">
-              <div className="stat-icon orange"><FiActivity /></div>
-              <div className="stat-info">
-                <h3>{stats.users?.active_today || 0}</h3>
-                <p>{t('admin.active_today')}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="charts-grid mt-4">
-            {/* Project Domains */}
-            <div className="glass-card chart-card">
-              <h3><FiPieChart /> {t('admin.projects_by_domain')}</h3>
-              <div className="chart-container">
-                <Doughnut 
-                  data={{
-                    labels: advStats?.projects_by_domain.map(d => d.domain) || [],
-                    datasets: [{
-                      data: advStats?.projects_by_domain.map(d => d.count) || [],
-                      backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                      borderWidth: 0,
-                    }]
-                  }}
-                  options={{ plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } } }}
-                />
-              </div>
-            </div>
-
-            {/* Application Stages */}
-            <div className="glass-card chart-card">
-              <h3><FiActivity /> {t('admin.application_pipeline') || 'Pipeline des Candidatures'}</h3>
-              <div className="chart-container">
-                <Bar 
-                  data={{
-                    labels: advStats?.applications_by_status.map(s => s.status) || [],
-                    datasets: [{
-                      label: t('admin.count') || 'Nombre',
-                      data: advStats?.applications_by_status.map(s => s.count) || [],
-                      backgroundColor: '#6366f1',
-                      borderRadius: 6,
-                    }]
-                  }}
-                  options={{ 
-                    scales: { 
-                      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
-                      x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                    },
-                    plugins: { legend: { display: false } }
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Difficulty Distribution */}
-            <div className="glass-card chart-card">
-              <h3><FiActivity /> {t('admin.difficulty_distribution') || 'Répartition par Difficulté'}</h3>
-              <div className="chart-container">
-                <PolarArea 
-                  data={{
-                    labels: advStats?.difficulty_distribution.map(d => d.difficulty) || [],
-                    datasets: [{
-                      data: advStats?.difficulty_distribution.map(d => d.count) || [],
-                      backgroundColor: ['rgba(16, 185, 129, 0.5)', 'rgba(245, 158, 11, 0.5)', 'rgba(239, 68, 68, 0.5)'],
-                      borderColor: '#111827',
-                    }]
-                  }}
-                  options={{ 
-                    scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } },
-                    plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } } 
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Supervisor Workload */}
-            <div className="glass-card chart-card">
-              <h3><FiUsers /> {t('admin.supervisor_workload') || 'Charge de Travail Encadrants'}</h3>
-              <div className="chart-container">
-                <Bar 
-                  data={{
-                    labels: advStats?.supervisors_workload.map(s => `M. ${s.supervisor__last_name}`) || [],
-                    datasets: [{
-                      label: t('admin.projects') || 'Projets',
-                      data: advStats?.supervisors_workload.map(s => s.count) || [],
-                      backgroundColor: '#06b6d4',
-                      borderRadius: 6,
-                    }]
-                  }}
-                  options={{ 
-                    indexAxis: 'y',
-                    scales: { 
-                      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
-                      y: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                    },
-                    plugins: { legend: { display: false } }
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+    return (
+      <div className="admin-page animate-fade-in">
+        <div className="page-header">
+          <h1>{t('common.administration')}</h1>
+          <p>{t('admin.subtitle') || 'Gérez la plateforme Smart PFE'}</p>
         </div>
-      )}
 
-      {/* Users Tab */}
-      {activeTab === 'users' && (
-        <div className="glass-card table-section">
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t('admin.user_header')}</th>
-                  <th>{t('admin.role_header')}</th>
-                  <th>{t('admin.university_header')}</th>
-                  <th>{t('admin.status_header')}</th>
-                  <th>{t('admin.actions_header')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      <div className="user-cell">
-                        <span className="user-initials">{u.first_name?.[0]}{u.last_name?.[0]}</span>
-                        <div className="user-meta">
-                          <span className="user-full-name">{u.first_name} {u.last_name}</span>
-                          <span className="user-email">{u.email}</span>
+        {/* Tabs */}
+        <div className="admin-tabs">
+          {[
+            { key: 'stats', label: t('admin.statistics'), icon: <FiActivity /> },
+            { key: 'users', label: t('admin.users'), icon: <FiUsers /> },
+            { key: 'projects', label: t('admin.projects'), icon: <FiFolder /> },
+            { key: 'applications', label: t('common.applications') || 'Candidatures', icon: <FiColumns /> },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {loading && <div className="loading-overlay">{t('common.loading')}</div>}
+
+        {/* Stats Tab */}
+        {activeTab === 'stats' && stats && (
+          <div className="stats-content">
+            <div className="grid grid-4">
+              <div className="glass-card stat-card">
+                <div className="stat-icon purple"><FiUsers /></div>
+                <div className="stat-info">
+                  <h3>{stats.users?.total || 0}</h3>
+                  <p>{t('admin.users')}</p>
+                </div>
+              </div>
+              <div className="glass-card stat-card">
+                <div className="stat-icon cyan"><FiFolder /></div>
+                <div className="stat-info">
+                  <h3>{stats.projects?.total || 0}</h3>
+                  <p>{t('admin.projects')}</p>
+                </div>
+              </div>
+              <div className="glass-card stat-card">
+                <div className="stat-icon green"><FiMessageSquare /></div>
+                <div className="stat-info">
+                  <h3>{stats.conversations?.total || 0}</h3>
+                  <p>{t('common.conversations')}</p>
+                </div>
+              </div>
+              <div className="glass-card stat-card">
+                <div className="stat-icon orange"><FiActivity /></div>
+                <div className="stat-info">
+                  <h3>{stats.users?.active_today || 0}</h3>
+                  <p>{t('admin.active_today')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="charts-grid mt-4">
+              {/* Project Domains */}
+              <div className="glass-card chart-card">
+                <h3><FiPieChart /> {t('admin.projects_by_domain')}</h3>
+                <div className="chart-container">
+                  <Doughnut
+                    data={{
+                      labels: advStats?.projects_by_domain.map(d => d.domain) || [],
+                      datasets: [{
+                        data: advStats?.projects_by_domain.map(d => d.count) || [],
+                        backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderWidth: 0,
+                      }]
+                    }}
+                    options={{ plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } } }}
+                  />
+                </div>
+              </div>
+
+              {/* Application Stages */}
+              <div className="glass-card chart-card">
+                <h3><FiActivity /> {t('admin.application_pipeline') || 'Pipeline des Candidatures'}</h3>
+                <div className="chart-container">
+                  <Bar
+                    data={{
+                      labels: advStats?.applications_by_status.map(s => s.status) || [],
+                      datasets: [{
+                        label: t('admin.count') || 'Nombre',
+                        data: advStats?.applications_by_status.map(s => s.count) || [],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                      }]
+                    }}
+                    options={{
+                      scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                      },
+                      plugins: { legend: { display: false } }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Difficulty Distribution */}
+              <div className="glass-card chart-card">
+                <h3><FiActivity /> {t('admin.difficulty_distribution') || 'Répartition par Difficulté'}</h3>
+                <div className="chart-container">
+                  <PolarArea
+                    data={{
+                      labels: advStats?.difficulty_distribution.map(d => d.difficulty) || [],
+                      datasets: [{
+                        data: advStats?.difficulty_distribution.map(d => d.count) || [],
+                        backgroundColor: ['rgba(16, 185, 129, 0.5)', 'rgba(245, 158, 11, 0.5)', 'rgba(239, 68, 68, 0.5)'],
+                        borderColor: '#111827',
+                      }]
+                    }}
+                    options={{
+                      scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } },
+                      plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Supervisor Workload */}
+              <div className="glass-card chart-card">
+                <h3><FiUsers /> {t('admin.supervisor_workload') || 'Charge de Travail Encadrants'}</h3>
+                <div className="chart-container">
+                  <Bar
+                    data={{
+                      labels: advStats?.supervisors_workload.map(s => `M. ${s.supervisor__last_name}`) || [],
+                      datasets: [{
+                        label: t('admin.projects') || 'Projets',
+                        data: advStats?.supervisors_workload.map(s => s.count) || [],
+                        backgroundColor: '#06b6d4',
+                        borderRadius: 6,
+                      }]
+                    }}
+                    options={{
+                      indexAxis: 'y',
+                      scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                        y: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                      },
+                      plugins: { legend: { display: false } }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div className="glass-card table-section">
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('admin.user_header')}</th>
+                    <th>{t('admin.role_header')}</th>
+                    <th>{t('admin.university_header')}</th>
+                    <th>{t('admin.status_header')}</th>
+                    <th>{t('admin.actions_header')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="user-cell">
+                          <span className="user-initials">{u.first_name?.[0]}{u.last_name?.[0]}</span>
+                          <div className="user-meta">
+                            <span className="user-full-name">{u.first_name} {u.last_name}</span>
+                            <span className="user-email">{u.email}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <select 
-                        className="role-select" 
-                        value={u.role} 
-                        onChange={(e) => handleChangeRole(u.id, e.target.value)}
-                      >
-                        <option value="student">{t('auth.student')}</option>
-                        <option value="supervisor">{t('auth.supervisor')}</option>
-                        <option value="admin">{t('auth.admin')}</option>
-                      </select>
-                    </td>
-                    <td>{u.university || '—'}</td>
-                    <td>
-                      <span className={`badge badge-${u.is_active ? 'success' : 'danger'}`}>
-                        {u.is_active ? t('admin.active') : t('admin.inactive')}
-                      </span>
-                    </td>
-                    <td>
-                      <button 
-                        className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => handleToggleUserActive(u.id)}
-                      >
-                        {u.is_active ? t('admin.deactivate') : t('admin.activate')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Projects Tab */}
-      {activeTab === 'projects' && (
-        <div className="glass-card table-section">
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t('admin.project_title_header')}</th>
-                  <th>{t('admin.domain_diff_header')}</th>
-                  <th>{t('common.supervisor')}</th>
-                  <th>{t('admin.status_header')}</th>
-                  <th>{t('admin.actions_header')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <div className="project-cell">
-                        <span className="project-title">{p.title}</span>
-                        <span className="project-owner">By {p.created_by_name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="tags-cell">
-                        <span className="badge badge-info">{p.domain}</span>
-                        <span className={`badge badge-${p.difficulty === 'beginner' ? 'success' : p.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>
-                          {p.difficulty}
+                      </td>
+                      <td>
+                        <select
+                          className="role-select"
+                          value={u.role}
+                          onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                        >
+                          <option value="student">{t('auth.student')}</option>
+                          <option value="supervisor">{t('auth.supervisor')}</option>
+                          <option value="admin">{t('auth.admin')}</option>
+                        </select>
+                      </td>
+                      <td>{u.university || '—'}</td>
+                      <td>
+                        <span className={`badge badge-${u.is_active ? 'success' : 'danger'}`}>
+                          {u.is_active ? t('admin.active') : t('admin.inactive')}
                         </span>
-                      </div>
-                    </td>
-                    <td>
-                      <select 
-                        className="supervisor-select"
-                        value={p.supervisor || ''}
-                        onChange={(e) => handleAssignSupervisor(p.id, e.target.value)}
-                      >
-                        <option value="">{t('admin.not_assigned')}</option>
-                        {supervisors.map(s => (
-                          <option key={s.id} value={s.id}>M. {s.last_name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${p.status === 'validated' || p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-btns">
-                        {(p.status === 'proposed' || p.status === 'rejected') && (
-                          <button className="btn-icon success" title={t('admin.approve') || 'Approuver'} onClick={() => handleProjectStatus(p.id, 'approved')}>
-                            <FiCheck />
-                          </button>
-                        )}
-                        {p.status !== 'rejected' && (
-                          <button className="btn-icon danger" title={t('admin.reject') || 'Rejeter'} onClick={() => handleProjectStatus(p.id, 'rejected')}>
-                            <FiX />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                      <td>
+                        <button
+                          className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`}
+                          onClick={() => handleToggleUserActive(u.id)}
+                        >
+                          {u.is_active ? t('admin.deactivate') : t('admin.activate')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+
+        {/* Projects Tab */}
+        {activeTab === 'projects' && (
+          <div className="glass-card table-section">
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('admin.project_title_header')}</th>
+                    <th>{t('admin.domain_diff_header')}</th>
+                    <th>{t('common.supervisor')}</th>
+                    <th>{t('admin.status_header')}</th>
+                    <th>{t('admin.actions_header')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        <div className="project-cell">
+                          <span className="project-title">{p.title}</span>
+                          <span className="project-owner">By {p.created_by_name}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="tags-cell">
+                          <span className="badge badge-info">{p.domain}</span>
+                          <span className={`badge badge-${p.difficulty === 'beginner' ? 'success' : p.difficulty === 'intermediate' ? 'warning' : 'danger'}`}>
+                            {p.difficulty}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <select
+                          className="supervisor-select"
+                          value={p.supervisor || ''}
+                          onChange={(e) => handleAssignSupervisor(p.id, e.target.value)}
+                        >
+                          <option value="">{t('admin.not_assigned')}</option>
+                          {supervisors.map(s => (
+                            <option key={s.id} value={s.id}>M. {s.last_name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${p.status === 'validated' || p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-btns">
+                          {(p.status === 'proposed' || p.status === 'rejected') && (
+                            <button className="btn-icon success" title={t('admin.approve') || 'Approuver'} onClick={() => handleProjectStatus(p.id, 'approved')}>
+                              <FiCheck />
+                            </button>
+                          )}
+                          {p.status !== 'rejected' && (
+                            <button className="btn-icon danger" title={t('admin.reject') || 'Rejeter'} onClick={() => handleProjectStatus(p.id, 'rejected')}>
+                              <FiX />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {/* Applications Tab */}
+        {activeTab === 'applications' && (
+          <div className="admin-kanban animate-fade-in">
+            <div className="kanban-board">
+              {APP_STAGES.map((stage) => (
+                <div key={stage.id} className="kanban-column">
+                  <div className="column-header" style={{ borderTop: `4px solid ${stage.color}` }}>
+                    <h3>{stage.label}</h3>
+                    <span className="count">
+                      {applications.filter(app => app.status === stage.id).length}
+                    </span>
+                  </div>
+                  <div className="column-content">
+                    {applications
+                      .filter(app => app.status === stage.id)
+                      .map(app => (
+                        <div key={app.id} className="application-card admin-card glass-card">
+                          <div className="card-top">
+                            <span className="user-badge"><FiUser /> {app.user_details?.first_name} {app.user_details?.last_name?.[0]}.</span>
+                            <span className="domain-tag">{app.project_details?.domain}</span>
+                          </div>
+                          <h4>{app.project_details?.title}</h4>
+                          <p className="university-meta">{app.user_details?.university}</p>
+
+                          <div className="card-actions-row">
+                            <span className="card-date">{new Date(app.updated_at).toLocaleDateString()}</span>
+                            <div className="logic-btns">
+                              {stage.id !== 'accepted' && stage.id !== 'rejected' && (
+                                <button
+                                  className="btn-next icon-only"
+                                  title="Étape suivante"
+                                  onClick={() => {
+                                    const nextIdx = APP_STAGES.findIndex(s => s.id === stage.id) + 1;
+                                    handleApplicationStatus(app.id, APP_STAGES[nextIdx].id);
+                                  }}
+                                >
+                                  <FiChevronRight />
+                                </button>
+                              )}
+                              {stage.id === 'applied' && (
+                                <button
+                                  className="btn-reject icon-only danger"
+                                  title="Rejeter"
+                                  onClick={() => handleApplicationStatus(app.id, 'rejected')}
+                                >
+                                  <FiX />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 }

@@ -13,6 +13,7 @@ import Favorites from './pages/Favorites';
 import AdminDashboard from './pages/AdminDashboard';
 import HomePage from './pages/HomePage';
 import ApplicationTracker from './pages/ApplicationTracker';
+import Notifications from './pages/Notifications';
 import './index.css';
 
 function ProtectedRoute({ children }) {
@@ -81,6 +82,9 @@ function AppRoutes() {
       } />
       <Route path="/applications" element={
         <ProtectedRoute><AppLayout><ApplicationTracker /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/notifications" element={
+        <ProtectedRoute><AppLayout><Notifications /></AppLayout></ProtectedRoute>
       } />
 
       {/* Admin Routes */}

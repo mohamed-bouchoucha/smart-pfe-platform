@@ -1,0 +1,108 @@
+.notifications-page {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.notifications-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notification-item {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.notification-item.unread {
+  border-left: 4px solid var(--accent-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.notification-item.unread::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+}
+
+.notification-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.notification-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.notification-icon.success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.notification-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+.notification-content {
+  flex-grow: 1;
+}
+
+.notification-content h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.notification-content p {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.notification-time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+}
+
+.empty-notifications {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-muted);
+}
+
+.empty-notifications svg {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+@media (max-width: 768px) {
+  .notifications-page { padding: 1rem; }
+  .notification-item { gap: 1rem; padding: 1rem; }
+  .notification-icon { width: 40px; height: 40px; font-size: 1.2rem; }
+}

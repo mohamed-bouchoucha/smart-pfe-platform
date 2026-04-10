@@ -6,7 +6,7 @@ import { notificationsAPI } from '../../services/api';
 import {
   FiHome, FiMessageSquare, FiFolder, FiUpload,
   FiHeart, FiLogOut, FiUsers, FiBarChart2, FiCpu,
-  FiGlobe, FiColumns, FiCalendar
+  FiGlobe, FiColumns, FiBell
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -43,7 +43,8 @@ export default function Sidebar() {
   };
 
   const studentLinks = [
-    { to: '/dashboard', icon: <FiHome />, label: t('common.dashboard'), badge: unreadCount > 0 ? unreadCount : null },
+    { to: '/dashboard', icon: <FiHome />, label: t('common.dashboard') },
+    { to: '/notifications', icon: <FiBell />, label: t('common.notifications') || 'Notifications', badge: unreadCount > 0 ? unreadCount : null },
     { to: '/chatbot', icon: <FiMessageSquare />, label: 'Chatbot IA' },
     { to: '/projects', icon: <FiFolder />, label: t('common.projects') || t('common.catalog') },
     { to: '/upload', icon: <FiUpload />, label: t('common.documents') || 'Documents' },
@@ -55,6 +56,7 @@ export default function Sidebar() {
     { to: '/admin', icon: <FiBarChart2 />, label: t('admin.statistics') },
     { to: '/admin/users', icon: <FiUsers />, label: t('admin.users') },
     { to: '/admin/projects', icon: <FiFolder />, label: t('admin.projects') },
+    { to: '/notifications', icon: <FiBell />, label: t('common.notifications') || 'Notifications', badge: unreadCount > 0 ? unreadCount : null },
   ];
 
   return (
@@ -93,7 +95,10 @@ export default function Sidebar() {
                 to={link.to}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
-                {link.icon}
+                <div className="nav-icon-wrapper">
+                  {link.icon}
+                  {link.badge && <span className="nav-badge">{link.badge}</span>}
+                </div>
                 <span>{link.label}</span>
               </NavLink>
             ))}
