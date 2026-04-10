@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsAPI } from '../../services/api';
+import useWebSockets from '../../hooks/useWebSockets';
+import { toast } from 'react-hot-toast';
 import {
   FiHome, FiMessageSquare, FiFolder, FiUpload,
   FiHeart, FiLogOut, FiUsers, FiBarChart2, FiCpu,
@@ -15,6 +17,19 @@ export default function Sidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
+  const wsUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api')
+    .replace('http', 'ws')
+    .replace('/api', '/ws/notifications/');
+
+  useWebSockets(wsUrl, (data) => {
+    setUnreadCount(prev => prev + 1);
+    toast.success(data.title, {
+      description: data.message,
+      icon: '🔔',
+      duration: 5000,
+    });
+  }, !!user);
 
   useEffect(() => {
     if (user) {

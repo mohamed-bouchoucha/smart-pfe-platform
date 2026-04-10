@@ -23,11 +23,30 @@ def notify_on_status_change(sender, instance, created, **kwargs):
         if instance.comment:
             message += f"\nCommentaire : {instance.comment}"
             
-        Notification.objects.create(
+        notification = Notification.objects.create(
             user=user,
             title=title,
             message=message,
             type=Notification.Type.INFO if instance.new_status != 'rejected' else Notification.Type.WARNING
+        )
+        
+        # Real-time WebSocket Notification
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"user_{user.id}_notifications",
+            {
+                "type": "notification_message",
+                "content": {
+                    "id": notification.id,
+                    "title": notification.title,
+                    "message": notification.message,
+                    "type": notification.type,
+                    "created_at": notification.created_at.isoformat(),
+                }
+            }
         )
         
         # Optional Email Notification

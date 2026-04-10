@@ -23,6 +23,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'conversations',
     'documents',
     'recommendations',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -73,6 +75,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 # Database — SQLite for development, PostgreSQL in production
@@ -175,3 +178,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # AI Service URL
 AI_SERVICE_URL = config('AI_SERVICE_URL', default='http://localhost:8001')
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [config('REDIS_URL', default='redis://localhost:6379/0')],
+        },
+    },
+}

@@ -25,7 +25,7 @@ Finding the right PFE project is often a fragmented process. Students struggle w
 - **ARIA v2 Assistant**: A context-aware chatbot that understands student profiles and conversation history to provide hyper-personalized project suggestions.
 - **Skill Gap Analyzer**: Interactive radar visualizations (Chart.js) comparing student skills with project requirements.
 - **Learning Resource Generator**: Automated AI suggestions for learning paths based on detected skill gaps.
-- **Signal-Driven Notifications**: Real-time platform alerts triggered by project status changes or administrative actions.
+- **Real-time Synchronization**: Instant platform alerts and UI updates powered by **Django Channels** and **WebSockets**.
 
 ### 🛠 Administration & Ops
 - **Admin Command Center**: High-level statistics on platform usage, domain distribution, and supervisor workload.
@@ -46,9 +46,9 @@ Finding the right PFE project is often a fragmented process. Students struggle w
 ## Architecture
 
 The platform follows a distributed microservices pattern:
-- **Backend Service (Django)**: Owns the source of truth, user sessions, and business rules.
-- **AI Service (FastAPI)**: A stateless service that handles compute-heavy LLM tasks, specialized text extraction, and recommendation logic.
-- **Frontend SPA (React)**: A highly interactive UI that aggregates data from both services to provide a seamless user experience.
+- **Backend Service (Django)**: Source of truth and business rules, running as an **ASGI** application via **Daphne** to support persistent WebSocket connections.
+- **AI Service (FastAPI)**: Stateless compute for LLM tasks, recommendation logic, and text extraction.
+- **Frontend SPA (React)**: Highly interactive UI using custom hooks for real-time data synchronization.
 
 ---
 
