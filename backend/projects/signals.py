@@ -17,15 +17,39 @@ def notify_on_status_change(sender, instance, created, **kwargs):
         status_display = dict(Project.Status.choices).get(instance.new_status, instance.new_status)
         
         title = f"Statut mis à jour : {project.title[:30]}..."
-        message = f"Votre projet '{project.title}' est maintenant '{status_display}'."
-        
-        if instance.comment:
-            message += f"\nCommentaire : {instance.comment}"
+        def send_ai_notification():
+            from django.conf import settings
+            import requests
+
+            ai_url = f"{settings.AI_SERVICE_URL.rstrip('/')}/api/notifications/generate-notification"
+            payload = {
+                "student_name": user.first_name or user.username,
+                "event_type": "application_status_changed",
+                "event_data": f"Projet: {project.title}, Statut: {status_display}"
+            }
+            try:
+                # Call AI service with a short timeout
+                resp = requests.post(ai_url, json=payload, timeout=5.0)
+                if resp.status_code == 200:
+                    ai_message = resp.json().get('message')
+                    if ai_message:
+                        return ai_message
+            except Exception as e:
+                print(f"Error calling AI notification service: {e}")
+            
+            # Fallback message
+            fallback_msg = f"Votre projet '{project.title}' est maintenant '{status_display}'."
+            if instance.comment:
+                fallback_msg += f"\nCommentaire : {instance.comment}"
+            return fallback_msg
+
+        # We can either block or run asynchronously. For simplicity, we just block for 5 seconds max.
+        final_message = send_ai_notification()
             
         notification = Notification.objects.create(
             user=user,
             title=title,
-            message=message,
+            message=final_message,
             type=Notification.Type.INFO if instance.new_status != 'rejected' else Notification.Type.WARNING
         )
         

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from routers import chat, analyze, recommend, skills
+from routers import chat, analyze, recommend, skills, admin, notifications
 
 load_dotenv()
 
@@ -32,6 +32,8 @@ app.include_router(chat.router, prefix="/api", tags=["Chatbot"])
 app.include_router(analyze.router, prefix="/api", tags=["Document Analysis"])
 app.include_router(recommend.router, prefix="/api", tags=["Recommendations"])
 app.include_router(skills.router, prefix="/api/skills", tags=["Skill Gap Analysis"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin Analytics"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Real-time Notifications"])
 
 
 import httpx

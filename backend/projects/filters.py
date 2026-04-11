@@ -15,7 +15,6 @@ class ProjectFilter(django_filters.FilterSet):
     skills = django_filters.ModelMultipleChoiceFilter(
         field_name='skills',
         queryset=Skill.objects.all(),
-        conjunction=False, # If True, project must have ALL selected skills
     )
     
     # Minimum and maximum duration if needed (though choices are fixed)

@@ -522,6 +522,40 @@ Add react-router-dom, axios, react-markdown, react-icons, chart.js, framer-motio
 #### [NEW] `docs/database_diagram.md` — ER diagram
 #### [NEW] `docs/uml_class_diagram.md` — UML class diagram
 #### [NEW] `docs/api_specification.md` — REST API endpoints documentation
+#### [NEW] `docs/prompt_engineering_guide.md` — Full Prompt Engineering Guide
+
+---
+
+## 🚀 Plan: Prompt Engineering Guide Integration
+Ce plan détaille la refonte complète du service IA (ai-service) pour utiliser LangChain avec Google Gemini 1.5 Pro, ainsi que l'exposition des nouveaux endpoints prévus par le guide de prompts.
+
+### Modifications de l'AI Service
+#### [MODIFY] `ai-service/requirements.txt`
+Ajouter `langchain`, `langchain-google-genai` et `langchain-core`
+
+#### [MODIFY] `ai-service/routers/chat.py`
+- Implémenter **ARIA_SYSTEM_PROMPT** avec `ChatPromptTemplate` pour le chatbot.
+- Ajouter un endpoint `/generate-application` qui exécute **APPLICATION_PROMPT**.
+
+#### [MODIFY] `ai-service/routers/recommend.py`
+- Refactoriser l'endpoint `/recommend` pour utiliser **RECOMMENDATION_PROMPT** et générer les recommandations JSON avec le LLM au lieu de l'algorithme statique.
+
+#### [MODIFY] `ai-service/routers/skills.py`
+- Ajouter l'endpoint `/analyze-fit` pour générer le rapport avec **SKILL_GAP_PROMPT**.
+- Refactoriser l'endpoint de ressources pour utiliser **LEARNING_PATH_PROMPT**.
+
+#### [MODIFY] `ai-service/routers/analyze.py`
+- Mettre à jour l'extraction de CV ou Document en injectant **CV_ANALYSIS_PROMPT** via LangChain, pour retourner le format JSON validé.
+
+#### [NEW] `ai-service/routers/admin.py`
+- Créer un endpoint `/admin-analytics` qui utilise **ADMIN_ANALYTICS_PROMPT** pour traiter les données brutes envoyées par le backend.
+
+#### [NEW] `ai-service/routers/notifications.py`
+- Créer un endpoint `/generate-notification` qui utilise **NOTIFICATION_PROMPT** afin de remplacer les messages statiques de notification par ceux générés par l'IA.
+
+### Modifications du Backend
+#### [MODIFY] `backend/projects/signals.py`
+- Appeler l'endpoint IA `/generate-notification` de façon asynchrone lors du changement de statut pour générer le message de notification.
 
 ---
 
